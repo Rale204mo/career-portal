@@ -1,0 +1,85 @@
+.student-dashboard {
+    background-color: #f8f9fa;
+    min-height: 100vh;
+  }
+  
+  .card {
+    border: none;
+    box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+    transition: transform 0.2s ease;
+  }
+  
+  .card:hover {
+    transform: translateY(-2px);
+  }
+  
+  .card-header {
+    border-bottom: 1px solid #e9ecef;
+  }
+  
+  .badge {
+    font-size: 0.75em;
+  }
+  
+  .table th {
+    border-top: none;
+    font-weight: 600;
+    color: #495057;
+  }
+  
+  .btn {
+    border-radius: 6px;
+  }
+  
+  .form-select:disabled {
+    background-color: #e9ecef;
+    cursor: not-allowed;
+  }
+  
+  /* Application status colors */
+  .bg-warning {
+    background-color: #ffc107 !important;
+  }
+  
+  .bg-success {
+    background-color: #198754 !important;
+  }
+  
+  .bg-danger {
+    background-color: #dc3545 !important;
+  }
+  
+  .bg-info {
+    background-color: #0dcaf0 !important;
+  }
+  
+  /* Responsive design */
+  @media (max-width: 768px) {
+    .container {
+      padding: 10px;
+    }
+    
+    .card-body {
+      padding: 1rem;
+    }
+    
+    .table-responsive {
+      font-size: 0.9rem;
+    }
+  }
+  
+  /* Loading animation */
+  @keyframes fadeIn {
+    from {
+      opacity: 0;
+      transform: translateY(10px);
+    }
+    to {
+      opacity: 1;
+      transform: translateY(0);
+    }
+  }
+  
+  .card {
+    animation: fadeIn 0.3s ease;
+  }
