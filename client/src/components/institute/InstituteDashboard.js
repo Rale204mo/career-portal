@@ -4,9 +4,11 @@ import { applicationsAPI, checkHealth, realApi } from '../../services/api';
 import FacultyManagement from './FacultyManagement';
 import CourseManagement from './CourseManagement';
 import { useAuth } from '../contexts/AuthContext';
+import { useNavigate } from 'react-router-dom';
 
 const InstituteDashboard = () => {
   const { logout } = useAuth();
+  const navigate = useNavigate();
   const [activeTab, setActiveTab] = useState('dashboard');
   const [applications, setApplications] = useState([]);
   const [allApplications, setAllApplications] = useState([]); // Store all applications
@@ -18,6 +20,15 @@ const InstituteDashboard = () => {
   // Try different institute IDs
   const instituteIds = ['limkokwing', 'nul', 'botho'];
   const [currentInstituteId, setCurrentInstituteId] = useState('limkokwing');
+
+  const handleLogout = async () => {
+    try {
+      await logout();
+      navigate('/login');
+    } catch (error) {
+      console.error('Logout failed:', error);
+    }
+  };
 
   useEffect(() => {
     checkBackendHealth();
@@ -116,6 +127,8 @@ const InstituteDashboard = () => {
   return (
     <Container fluid className="py-4">
       {/* Header */}
+
+      
       <Card className="mb-4 dashboard-header">
         <Card.Body>
           <Row className="align-items-center">
@@ -143,7 +156,7 @@ const InstituteDashboard = () => {
                 </Button>
                 <Button
                   variant="outline-danger"
-                  onClick={() => logout()}
+                  onClick={handleLogout}
                 >
                   Logout
                 </Button>

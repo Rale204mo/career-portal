@@ -1,8 +1,11 @@
 import React, { useEffect, useState } from "react";
-import { Card, Button, Table, Modal, Form } from "react-bootstrap";
+import { Card, Button, Table, Modal, Form, Container } from "react-bootstrap";
+import { Link } from 'react-router-dom';
 import axios from "axios";
+import { useAuth } from '../contexts/AuthContext';
 
 export default function CompanyManagement() {
+  const { logout } = useAuth();
   const [companies, setCompanies] = useState([]);
   const [showAddModal, setShowAddModal] = useState(false);
   const [newCompany, setNewCompany] = useState({
@@ -66,8 +69,23 @@ export default function CompanyManagement() {
   };
 
   return (
-    <div className="bg-dark text-light p-4 rounded">
-      <h2 className="mb-4 text-center">Company Management</h2>
+    <Container className="mt-4">
+      <div className="d-flex justify-content-between align-items-center mb-4">
+        <div className="d-flex align-items-center gap-3">
+          <Button as={Link} to="/admin" variant="outline-secondary">
+            ← Back to Dashboard
+          </Button>
+          <h1>Company Management</h1>
+        </div>
+        <div className="d-flex gap-2">
+          <Button variant="outline-danger" onClick={() => logout()}>
+            Logout
+          </Button>
+        </div>
+      </div>
+
+      <div className="bg-dark text-light p-4 rounded">
+        <h2 className="mb-4 text-center">Company Management</h2>
 
       {/* Add New Company */}
       <div className="text-end mb-3">
@@ -178,5 +196,6 @@ export default function CompanyManagement() {
         </Modal.Body>
       </Modal>
     </div>
+    </Container>
   );
 }

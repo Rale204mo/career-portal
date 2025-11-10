@@ -1,28 +1,47 @@
-# Dashboard Logout and Back Button Implementation
+# Add Back Button to All Components
 
-## Overview
-Add logout buttons to dashboards that don't have them and add back buttons to sub-components accessed from dashboards.
+## Student Components
+- [ ] StudentProfile.js - Add back button to student dashboard
+- [x] Documents.js - Add back button to student dashboard
+- [ ] JobPostings.js - Add back button to student dashboard
+- [ ] Universities.js - Add back button to student dashboard
+- [ ] StudentDashboard.js - Add back button to home/login
 
-## Tasks
+## Admin Components
+- [ ] AdminDashboard.js - Add back button to home/login
+- [ ] AdminInstitutions.js - Add back button to admin dashboard
 
-### Logout Buttons
-- [x] Add logout button to AdminDashboard.js (already implemented)
-- [x] Add logout button to InstituteDashboard.js (already implemented)
-- [x] Add logout button to CompanyDashboard.js (already implemented)
+## Institute Components
+- [ ] InstituteDashboard.js - Add back button to home/login
+- [ ] FacultyManagement.js - Already has back button, verify it works
 
-### Back Buttons
-- [x] Add back button to FacultyManagement.js
-- [x] Add back button to CourseManagement.js
-- [x] Check and add back buttons to other sub-components if needed
+## Company Components
+- [ ] CompanyDashboard.js - Add back button to home/login
+- [x] ApplicantView.js - Add back button to company dashboard
+- [x] CompanyProfile.js - Add back button to company dashboard
 
-## Files to Modify
-- client/src/components/admin/AdminDashboard.js
-- client/src/components/institute/InstituteDashboard.js
-- client/src/components/company/CompanyDashboard.js
-- client/src/components/institute/FacultyManagement.js
-- client/src/components/institute/CourseManagement.js
+## Auth Components
+- [ ] AdminLogin.js - Add back button to home
+- [ ] Login.js - Add back button to home
+- [ ] Register.js - Add back button to home
+- [ ] EmailVerification.js - Add back button to login
+- [ ] ForgotPassword.js - Add back button to login
 
-## Status
-- [x] Analysis completed
-- [x] Plan approved by user
-- [x] Implementation completed
+## Shared Components
+- [ ] ProtectedRoute.js - No back button needed (not a page)
+- [ ] ConfirmationDialog.js - No back button needed (modal)
+- [ ] CourseCard.js - No back button needed (card component)
+- [ ] FilterComponent.js - No back button needed (utility)
+- [ ] JobCard.js - No back button needed (card component)
+- [ ] NotificationBell.js - No back button needed (utility)
+- [ ] SearchBar.js - No back button needed (utility)
+- [ ] Unauthorized.js - Add back button to home
+- [ ] UserProfile.js - Add back button to appropriate dashboard
+
+## Layout Components
+- [ ] Header.js - No back button needed (header)
+- [ ] Footer.js - No back button needed (footer)
+- [ ] Layout.js - No back button needed (layout wrapper)
+- [ ] LoadingSpinner.js - No back button needed (utility)
+- [ ] Modal.js - No back button needed (modal)
+- [ ] Sidebar.js - No back button needed (sidebar)

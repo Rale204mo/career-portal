@@ -1,9 +1,12 @@
 // src/components/admin/AdmissionsDebug.js
 import React, { useState } from 'react';
 import { Container, Card, Button, Alert, Pre } from 'react-bootstrap';
+import { Link } from 'react-router-dom';
 import { realApi } from '../../api/config';
+import { useAuth } from '../contexts/AuthContext';
 
 const AdmissionsDebug = () => {
+  const { logout } = useAuth();
   const [debugData, setDebugData] = useState({});
   const [loading, setLoading] = useState(false);
 
@@ -11,15 +14,15 @@ const AdmissionsDebug = () => {
     setLoading(true);
     try {
       console.log('Testing API connections...');
-      
+
       // Test health endpoint
       const health = await realApi.checkHealth();
       console.log('Health check:', health);
-      
+
       // Test applications endpoint
       const applications = await realApi.getApplications();
       console.log('Applications:', applications);
-      
+
       // Test institutions endpoint
       const institutions = await realApi.getInstitutions();
       console.log('Institutions:', institutions);
@@ -56,6 +59,20 @@ const AdmissionsDebug = () => {
 
   return (
     <Container className="mt-4">
+      <div className="d-flex justify-content-between align-items-center mb-4">
+        <div className="d-flex align-items-center gap-3">
+          <Button as={Link} to="/admin" variant="outline-secondary">
+            ← Back to Dashboard
+          </Button>
+          <h1>Admissions Debug</h1>
+        </div>
+        <div className="d-flex gap-2">
+          <Button variant="outline-danger" onClick={() => logout()}>
+            Logout
+          </Button>
+        </div>
+      </div>
+
       <Card>
         <Card.Header>
           <h4>🔧 Admissions API Debug</h4>

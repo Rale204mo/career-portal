@@ -1,9 +1,12 @@
 // src/components/admin/AdminAdmissions.js
 import React, { useState, useEffect } from 'react';
 import { Container, Card, Table, Button, Badge, Alert, Modal, Form, Row, Col } from 'react-bootstrap';
+import { Link } from 'react-router-dom';
 import { realApi } from '../../api/config';
+import { useAuth } from '../contexts/AuthContext';
 
 const AdminAdmissions = () => {
+  const { logout } = useAuth();
   const [applications, setApplications] = useState([]);
   const [institutions, setInstitutions] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -125,10 +128,18 @@ const AdminAdmissions = () => {
   return (
     <Container className="mt-4">
       <div className="d-flex justify-content-between align-items-center mb-4">
-        <h1>Admissions Management</h1>
-        <div>
-          <Button 
-            variant="outline-info" 
+        <div className="d-flex align-items-center gap-3">
+          <Button as={Link} to="/admin/dashboard" variant="outline-secondary">
+            ← Back to Dashboard
+          </Button>
+          <h1>Admissions Management</h1>
+        </div>
+        <div className="d-flex gap-2">
+          <Button variant="outline-danger" onClick={() => logout()}>
+            Logout
+          </Button>
+          <Button
+            variant="outline-info"
             className="me-2"
             as="a"
             href="/admin/debug"

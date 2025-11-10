@@ -1,6 +1,7 @@
 // src/components/student/Documents.js
 import React, { useState, useRef, useEffect } from 'react';
 import { Container, Card, Button, Table, Alert, Row, Col, ProgressBar, Badge } from 'react-bootstrap';
+import { Link } from 'react-router-dom';
 import { auth, db } from '../../firebase';
 import { collection, addDoc, query, where, onSnapshot, deleteDoc, doc, getDocs } from 'firebase/firestore';
 
@@ -186,10 +187,15 @@ const Documents = () => {
     <Container className="mt-4">
       <Row>
         <Col>
-          <h2 className="text-primary mb-4">
-            <i className="bi bi-file-earmark-text me-2"></i>
-            My Documents
-          </h2>
+          <div className="d-flex justify-content-between align-items-center mb-4">
+            <h2 className="text-primary mb-0">
+              <i className="bi bi-file-earmark-text me-2"></i>
+              My Documents
+            </h2>
+            <Button as={Link} to="/student-dashboard" variant="outline-secondary">
+              ← Back to Dashboard
+            </Button>
+          </div>
         </Col>
       </Row>
 

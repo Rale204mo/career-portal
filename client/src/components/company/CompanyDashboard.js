@@ -2,11 +2,22 @@ import React, { useEffect, useState } from "react";
 import { Card, Row, Col, Spinner, Button } from "react-bootstrap";
 import axios from "axios";
 import { useAuth } from '../contexts/AuthContext';
+import { useNavigate } from 'react-router-dom';
 
 export default function CompanyDashboard() {
   const { logout } = useAuth();
+  const navigate = useNavigate();
   const [stats, setStats] = useState({ jobs: 0, applicants: 0 });
   const [loading, setLoading] = useState(true);
+
+  const handleLogout = async () => {
+    try {
+      await logout();
+      navigate('/login');
+    } catch (error) {
+      console.error('Logout failed:', error);
+    }
+  };
 
   useEffect(() => {
     const fetchStats = async () => {
@@ -30,7 +41,7 @@ export default function CompanyDashboard() {
           <h2 className="fw-bold text-dark mb-2">Company Dashboard</h2>
           <p className="text-muted">Manage your hiring process</p>
         </div>
-        <Button variant="outline-danger" onClick={() => logout()}>
+        <Button variant="outline-danger" onClick={handleLogout}>
           Logout
         </Button>
       </div>

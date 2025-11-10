@@ -257,6 +257,9 @@ export default function Home() {
                 <Link to="/signup" className="btn btn-primary btn-lg">
                   Create Account
                 </Link>
+                <Link to="/admin/login" className="btn btn-secondary btn-lg">
+                  Admin Login
+                </Link>
                 <Link to="/about" className="btn btn-outline-light btn-lg">
                   Learn More
                 </Link>

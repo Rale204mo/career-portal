@@ -1,13 +1,28 @@
 // src/components/admin/AdminSecurity.js
 import React from 'react';
-import { Container, Card, Alert, Table } from 'react-bootstrap';
+import { Container, Card, Alert, Table, Button } from 'react-bootstrap';
+import { Link } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
 
 const AdminSecurity = () => {
-  const { userProfile, isPredefinedAdmin } = useAuth();
+  const { userProfile, isPredefinedAdmin, logout } = useAuth();
 
   return (
     <Container className="mt-4">
+      <div className="d-flex justify-content-between align-items-center mb-4">
+        <div className="d-flex align-items-center gap-3">
+          <Button as={Link} to="/admin" variant="outline-secondary">
+            ← Back to Dashboard
+          </Button>
+          <h1>Security Settings</h1>
+        </div>
+        <div className="d-flex gap-2">
+          <Button variant="outline-danger" onClick={() => logout()}>
+            Logout
+          </Button>
+        </div>
+      </div>
+
       <Card>
         <Card.Header className="bg-dark text-white">
           <h4 className="mb-0">🔒 Admin Security Information</h4>

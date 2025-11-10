@@ -1,8 +1,11 @@
 // src/components/admin/AdminCompanies.js
 import React, { useState, useEffect } from 'react';
 import { Container, Card, Table, Button, Badge, Alert } from 'react-bootstrap';
+import { Link } from 'react-router-dom';
+import { useAuth } from '../contexts/AuthContext';
 
 const AdminCompanies = () => {
+  const { logout } = useAuth();
   const [companies, setCompanies] = useState([]);
   const [loading, setLoading] = useState(false);
 
@@ -21,7 +24,7 @@ const AdminCompanies = () => {
           createdAt: new Date('2024-01-15')
         },
         {
-          id: '2', 
+          id: '2',
           name: 'Innovate Corp',
           email: 'hr@innovatecorp.com',
           status: 'pending',
@@ -34,13 +37,13 @@ const AdminCompanies = () => {
   }, []);
 
   const handleApprove = (companyId) => {
-    setCompanies(companies.map(company => 
+    setCompanies(companies.map(company =>
       company.id === companyId ? { ...company, status: 'approved' } : company
     ));
   };
 
   const handleSuspend = (companyId) => {
-    setCompanies(companies.map(company => 
+    setCompanies(companies.map(company =>
       company.id === companyId ? { ...company, status: 'suspended' } : company
     ));
   };
@@ -61,8 +64,18 @@ const AdminCompanies = () => {
   return (
     <Container className="mt-4">
       <div className="d-flex justify-content-between align-items-center mb-4">
-        <h1>Company Management</h1>
-        <Button variant="primary">Refresh</Button>
+        <div className="d-flex align-items-center gap-3">
+          <Button as={Link} to="/admin" variant="outline-secondary">
+            ← Back to Dashboard
+          </Button>
+          <h1>Company Management</h1>
+        </div>
+        <div className="d-flex gap-2">
+          <Button variant="outline-danger" onClick={() => logout()}>
+            Logout
+          </Button>
+          <Button variant="primary">Refresh</Button>
+        </div>
       </div>
 
       <Card>

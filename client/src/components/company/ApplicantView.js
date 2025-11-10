@@ -9,6 +9,7 @@ import {
   Badge,
   Spinner
 } from 'react-bootstrap';
+import { Link } from 'react-router-dom';
 
 const ApplicantView = () => {
   const [applicants, setApplicants] = useState([]);
@@ -142,9 +143,14 @@ const ApplicantView = () => {
   return (
     <Container className="py-4">
       {/* Header */}
-      <div className="text-center mb-5">
-        <h2 className="fw-bold text-dark mb-2">Interview-Ready Applicants</h2>
-        <p className="text-muted">View and manage applicants ready for interview consideration</p>
+      <div className="d-flex justify-content-between align-items-center mb-5">
+        <div className="text-center flex-grow-1">
+          <h2 className="fw-bold text-dark mb-2">Interview-Ready Applicants</h2>
+          <p className="text-muted">View and manage applicants ready for interview consideration</p>
+        </div>
+        <Button as={Link} to="/company-dashboard" variant="outline-secondary">
+          ← Back to Dashboard
+        </Button>
       </div>
 
       {/* Filters */}

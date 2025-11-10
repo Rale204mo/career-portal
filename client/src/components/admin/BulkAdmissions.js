@@ -1,9 +1,12 @@
 // src/components/admin/BulkAdmissions.js
 import React, { useState, useEffect } from 'react';
 import { Container, Card, Table, Button, Alert, Form, Row, Col } from 'react-bootstrap';
+import { Link } from 'react-router-dom';
 import { realApi } from '../../api/config';
+import { useAuth } from '../contexts/AuthContext';
 
 const BulkAdmissions = () => {
+  const { logout } = useAuth();
   const [applications, setApplications] = useState([]);
   const [selectedApps, setSelectedApps] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -33,8 +36,8 @@ const BulkAdmissions = () => {
   };
 
   const handleSelectApp = (appId) => {
-    setSelectedApps(prev => 
-      prev.includes(appId) 
+    setSelectedApps(prev =>
+      prev.includes(appId)
         ? prev.filter(id => id !== appId)
         : [...prev, appId]
     );
@@ -52,20 +55,20 @@ const BulkAdmissions = () => {
 
     try {
       setActionLoading(true);
-      
+
       // Perform bulk action
-      const promises = selectedApps.map(appId => 
+      const promises = selectedApps.map(appId =>
         realApi.updateApplicationStatus(appId, action)
       );
-      
+
       await Promise.all(promises);
-      
+
       // Refresh data
       await fetchApplications();
       setSelectedApps([]);
-      
+
       alert(`Successfully ${action} ${selectedApps.length} application(s)`);
-      
+
     } catch (err) {
       alert('Error performing bulk action: ' + err.message);
     } finally {
@@ -77,7 +80,19 @@ const BulkAdmissions = () => {
 
   return (
     <Container className="mt-4">
-      <h1>Bulk Admissions Management</h1>
+      <div className="d-flex justify-content-between align-items-center mb-4">
+        <div className="d-flex align-items-center gap-3">
+          <Button as={Link} to="/admin" variant="outline-secondary">
+            ← Back to Dashboard
+          </Button>
+          <h1>Bulk Admissions Management</h1>
+        </div>
+        <div className="d-flex gap-2">
+          <Button variant="outline-danger" onClick={() => logout()}>
+            Logout
+          </Button>
+        </div>
+      </div>
       
       <Card className="mb-4">
         <Card.Header>

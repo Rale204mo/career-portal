@@ -1,9 +1,12 @@
 import React, { useState, useEffect } from 'react';
+import { Container, Card, Button, Form, Table, Modal, Alert, Spinner, Row, Col } from 'react-bootstrap';
 import { realApi } from '../../api/config';
+import { useAuth } from '../contexts/AuthContext';
 
 import './CourseManagement.css';
 
 const CourseManagement = ({ onBack }) => {
+  const { logout } = useAuth();
   const [courses, setCourses] = useState([]);
   const [faculties, setFaculties] = useState([]);
   const [loading, setLoading] = useState(false);
@@ -236,222 +239,261 @@ const CourseManagement = ({ onBack }) => {
   };
 
   return (
-    <div className="course-management">
-      <div className="course-header">
-        <div style={{ display: 'flex', alignItems: 'center', gap: '15px', marginBottom: '10px' }}>
-          <button
-            onClick={onBack}
-            className="btn-secondary"
-            style={{ padding: '8px 16px', border: 'none', borderRadius: '4px', cursor: 'pointer' }}
-          >
+    <Container className="mt-4">
+      <div className="d-flex justify-content-between align-items-center mb-4">
+        <div className="d-flex align-items-center gap-3">
+          <Button variant="outline-secondary" onClick={onBack}>
             ← Back to Dashboard
-          </button>
-          <h3>Course Management</h3>
+          </Button>
+          <h2>Course Management</h2>
         </div>
-        <p>Add and manage courses for your institution</p>
+        <div className="d-flex gap-2">
+          <Button variant="outline-danger" onClick={() => logout()}>
+            Logout
+          </Button>
+          <Button variant="primary" onClick={fetchCourses} disabled={loading}>
+            {loading ? <Spinner size="sm" /> : '🔄 Refresh'}
+          </Button>
+        </div>
       </div>
 
       {/* Error Display */}
       {error && (
-        <div className="error-message">
+        <Alert variant="danger" className="mb-4">
+          <Alert.Heading>Error</Alert.Heading>
           {error}
-          <button
-            onClick={() => setError('')}
-            className="error-close"
-          >
-            ×
-          </button>
-        </div>
+        </Alert>
       )}
 
-      {/* Course Form */}
-      <div className="course-form-section">
-        <h4>{editingCourse ? 'Edit Course' : 'Add New Course'}</h4>
-        <form onSubmit={handleSubmit} className="course-form">
-          <div className="form-row">
-            <div className="form-group">
-              <label>Course Name *</label>
-              <input
-                type="text"
-                value={formData.name}
-                onChange={(e) => setFormData({...formData, name: e.target.value})}
+      <Card className="mb-4">
+        <Card.Header>
+          <h5 className="mb-0">{editingCourse ? 'Edit Course' : 'Add New Course'}</h5>
+        </Card.Header>
+        <Card.Body>
+          <Form onSubmit={handleSubmit}>
+            <Row className="mb-3">
+              <Col md={6}>
+                <Form.Group>
+                  <Form.Label>Course Name *</Form.Label>
+                  <Form.Control
+                    type="text"
+                    value={formData.name}
+                    onChange={(e) => setFormData({...formData, name: e.target.value})}
+                    required
+                    disabled={loading}
+                  />
+                </Form.Group>
+              </Col>
+              <Col md={6}>
+                <Form.Group>
+                  <Form.Label>Faculty *</Form.Label>
+                  <Form.Select
+                    value={formData.facultyId}
+                    onChange={(e) => setFormData({...formData, facultyId: e.target.value})}
+                    required
+                    disabled={loading || faculties.length === 0}
+                  >
+                    <option value="">Select Faculty</option>
+                    {faculties.map(faculty => (
+                      <option key={faculty.id} value={faculty.id}>
+                        {faculty.name}
+                      </option>
+                    ))}
+                  </Form.Select>
+                  {faculties.length === 0 && !loading && (
+                    <Form.Text className="text-muted">No faculties found. Please add faculties first.</Form.Text>
+                  )}
+                </Form.Group>
+              </Col>
+            </Row>
+
+            <Form.Group className="mb-3">
+              <Form.Label>Description *</Form.Label>
+              <Form.Control
+                as="textarea"
+                rows={3}
+                value={formData.description}
+                onChange={(e) => setFormData({...formData, description: e.target.value})}
                 required
                 disabled={loading}
               />
-            </div>
-            <div className="form-group">
-              <label>Faculty *</label>
-              <select
-                value={formData.facultyId}
-                onChange={(e) => setFormData({...formData, facultyId: e.target.value})}
-                required
-                disabled={loading || faculties.length === 0}
+            </Form.Group>
+
+            <Row className="mb-3">
+              <Col md={6}>
+                <Form.Group>
+                  <Form.Label>Requirements *</Form.Label>
+                  <Form.Control
+                    type="text"
+                    value={formData.requirements}
+                    onChange={(e) => setFormData({...formData, requirements: e.target.value})}
+                    placeholder="e.g., Mathematics, English, Science"
+                    required
+                    disabled={loading}
+                  />
+                </Form.Group>
+              </Col>
+              <Col md={6}>
+                <Form.Group>
+                  <Form.Label>Duration *</Form.Label>
+                  <Form.Control
+                    type="text"
+                    value={formData.duration}
+                    onChange={(e) => setFormData({...formData, duration: e.target.value})}
+                    placeholder="e.g., 4 years"
+                    required
+                    disabled={loading}
+                  />
+                </Form.Group>
+              </Col>
+            </Row>
+
+            <Row className="mb-3">
+              <Col md={6}>
+                <Form.Group>
+                  <Form.Label>Fees (LSL) *</Form.Label>
+                  <Form.Control
+                    type="number"
+                    value={formData.fees}
+                    onChange={(e) => setFormData({...formData, fees: e.target.value})}
+                    required
+                    min="0"
+                    step="0.01"
+                    disabled={loading}
+                  />
+                </Form.Group>
+              </Col>
+              <Col md={6}>
+                <Form.Group>
+                  <Form.Label>Available Seats *</Form.Label>
+                  <Form.Control
+                    type="number"
+                    value={formData.seats}
+                    onChange={(e) => setFormData({...formData, seats: e.target.value})}
+                    required
+                    min="1"
+                    disabled={loading}
+                  />
+                </Form.Group>
+              </Col>
+            </Row>
+
+            <div className="d-flex gap-2">
+              <Button
+                type="submit"
+                variant="primary"
+                disabled={loading}
               >
-                <option value="">Select Faculty</option>
-                {faculties.map(faculty => (
-                  <option key={faculty.id} value={faculty.id}>
-                    {faculty.name}
-                  </option>
-                ))}
-              </select>
-              {faculties.length === 0 && !loading && (
-                <small className="form-hint">No faculties found. Please add faculties first.</small>
+                {loading ? <Spinner size="sm" /> : (editingCourse ? 'Update Course' : 'Add Course')}
+              </Button>
+              {editingCourse && (
+                <Button
+                  type="button"
+                  variant="secondary"
+                  onClick={cancelEdit}
+                  disabled={loading}
+                >
+                  Cancel Edit
+                </Button>
               )}
             </div>
-          </div>
+          </Form>
+        </Card.Body>
+      </Card>
 
-          <div className="form-group">
-            <label>Description *</label>
-            <textarea
-              value={formData.description}
-              onChange={(e) => setFormData({...formData, description: e.target.value})}
-              required
-              rows="3"
+      <Card>
+        <Card.Header>
+          <div className="d-flex justify-content-between align-items-center">
+            <h5 className="mb-0">Your Courses ({courses.length})</h5>
+            <Button
+              variant="outline-secondary"
+              onClick={fetchCourses}
               disabled={loading}
-            />
-          </div>
-
-          <div className="form-row">
-            <div className="form-group">
-              <label>Requirements *</label>
-              <input
-                type="text"
-                value={formData.requirements}
-                onChange={(e) => setFormData({...formData, requirements: e.target.value})}
-                placeholder="e.g., Mathematics, English, Science"
-                required
-                disabled={loading}
-              />
-            </div>
-            <div className="form-group">
-              <label>Duration *</label>
-              <input
-                type="text"
-                value={formData.duration}
-                onChange={(e) => setFormData({...formData, duration: e.target.value})}
-                placeholder="e.g., 4 years"
-                required
-                disabled={loading}
-              />
-            </div>
-          </div>
-
-          <div className="form-row">
-            <div className="form-group">
-              <label>Fees (LSL) *</label>
-              <input
-                type="number"
-                value={formData.fees}
-                onChange={(e) => setFormData({...formData, fees: e.target.value})}
-                required
-                min="0"
-                step="0.01"
-                disabled={loading}
-              />
-            </div>
-            <div className="form-group">
-              <label>Available Seats *</label>
-              <input
-                type="number"
-                value={formData.seats}
-                onChange={(e) => setFormData({...formData, seats: e.target.value})}
-                required
-                min="1"
-                disabled={loading}
-              />
-            </div>
-          </div>
-
-          <div className="form-actions">
-            <button
-              type="submit"
-              disabled={loading}
-              className="btn-primary"
             >
-              {loading ? 'Saving...' : (editingCourse ? 'Update Course' : 'Add Course')}
-            </button>
-            {editingCourse && (
-              <button
-                type="button"
-                onClick={cancelEdit}
-                disabled={loading}
-                className="btn-secondary"
-              >
-                Cancel Edit
-              </button>
-            )}
+              {loading ? <Spinner size="sm" /> : '🔄 Refresh'}
+            </Button>
           </div>
-        </form>
-      </div>
-
-      {/* Courses List */}
-      <div className="courses-list-section">
-        <div className="section-header">
-          <h4>Your Courses ({courses.length})</h4>
-          <button
-            onClick={fetchCourses}
-            disabled={loading}
-            className="btn-refresh"
-          >
-            Refresh
-          </button>
-        </div>
-
-        {loading ? (
-          <div className="loading">Loading courses...</div>
-        ) : courses.length === 0 ? (
-          <div className="no-courses">
-            <p>No courses added yet</p>
-            <p className="hint">Add your first course using the form above</p>
-          </div>
-        ) : (
-          <div className="courses-grid">
-            {courses.map(course => (
-              <div key={course.id} className={`course-card ${course.status !== 'active' ? 'inactive' : ''}`}>
-                <div className="course-header">
-                  <h5>{course.name}</h5>
-                  <span className={`status ${course.status === 'active' ? 'active' : 'inactive'}`}>
-                    {course.status === 'active' ? 'Active' : 'Inactive'}
-                  </span>
-                </div>
-                <p className="course-description">{course.description}</p>
-                <div className="course-details">
-                  <span><strong>Duration:</strong> {course.duration}</span>
-                  <span><strong>Capacity:</strong> {course.capacity}</span>
-                  <span><strong>Faculty:</strong> {course.facultyName || faculties.find(f => f.id === course.facultyId)?.name || 'Unknown'}</span>
-                </div>
-                <div className="course-requirements">
-                  <strong>Requirements:</strong> {course.requirements || 'None'}
-                </div>
-                <div className="course-actions">
-                  <button
-                    onClick={() => handleEdit(course)}
-                    className="btn-edit"
-                    disabled={loading}
-                  >
-                    Edit
-                  </button>
-                  <button
-                    onClick={() => toggleCourseStatus(course)}
-                    className={course.status === 'active' ? 'btn-warning' : 'btn-success'}
-                    disabled={loading}
-                  >
-                    {course.status === 'active' ? 'Deactivate' : 'Activate'}
-                  </button>
-                  <button
-                    onClick={() => handleDelete(course.id)}
-                    className="btn-danger"
-                    disabled={loading}
-                  >
-                    Delete
-                  </button>
-                </div>
+        </Card.Header>
+        <Card.Body>
+          {loading ? (
+            <div className="text-center py-5">
+              <Spinner animation="border" variant="primary" />
+              <p className="mt-2 text-muted">Loading courses...</p>
+            </div>
+          ) : courses.length === 0 ? (
+            <div className="text-center py-5">
+              <div className="text-muted mb-3">
+                <i className="bi bi-book" style={{ fontSize: '3rem' }}></i>
               </div>
-            ))}
-          </div>
-        )}
-      </div>
-    </div>
+              <h5 className="text-dark">No courses added yet</h5>
+              <p className="text-muted">Add your first course using the form above</p>
+            </div>
+          ) : (
+            <div className="table-responsive">
+              <Table striped hover className="courses-table">
+                <thead className="table-dark">
+                  <tr>
+                    <th>Name</th>
+                    <th>Faculty</th>
+                    <th>Duration</th>
+                    <th>Capacity</th>
+                    <th>Status</th>
+                    <th>Actions</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {courses.map(course => (
+                    <tr key={course.id}>
+                      <td>
+                        <strong className="text-primary">{course.name}</strong>
+                        <br />
+                        <small className="text-muted">{course.description}</small>
+                      </td>
+                      <td>{course.facultyName || faculties.find(f => f.id === course.facultyId)?.name || 'Unknown'}</td>
+                      <td>{course.duration}</td>
+                      <td>{course.capacity}</td>
+                      <td>
+                        <span className={`badge ${course.status === 'active' ? 'bg-success' : 'bg-secondary'}`}>
+                          {course.status === 'active' ? 'Active' : 'Inactive'}
+                        </span>
+                      </td>
+                      <td>
+                        <div className="btn-group btn-group-sm">
+                          <Button
+                            variant="outline-primary"
+                            size="sm"
+                            onClick={() => handleEdit(course)}
+                            disabled={loading}
+                          >
+                            Edit
+                          </Button>
+                          <Button
+                            variant={course.status === 'active' ? 'outline-warning' : 'outline-success'}
+                            size="sm"
+                            onClick={() => toggleCourseStatus(course)}
+                            disabled={loading}
+                          >
+                            {course.status === 'active' ? 'Deactivate' : 'Activate'}
+                          </Button>
+                          <Button
+                            variant="outline-danger"
+                            size="sm"
+                            onClick={() => handleDelete(course.id)}
+                            disabled={loading}
+                          >
+                            Delete
+                          </Button>
+                        </div>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </Table>
+            </div>
+          )}
+        </Card.Body>
+      </Card>
+    </Container>
   );
 };
 

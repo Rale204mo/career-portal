@@ -1,11 +1,14 @@
 // src/components/admin/AdminInstitutions.js
 import React, { useState, useEffect } from 'react';
 import { Container, Card, Table, Button, Badge, Alert, Modal, Form, Row, Col } from 'react-bootstrap';
+import { Link } from 'react-router-dom';
 import { collection, getDocs, query, where, addDoc, updateDoc, deleteDoc, doc } from 'firebase/firestore';
 import { auth, db } from '../../firebase';
 import { realApi } from '../../api/config';
+import { useAuth } from '../contexts/AuthContext';
 
 const AdminInstitutions = () => {
+  const { logout } = useAuth();
   const [institutions, setInstitutions] = useState([]);
   const [applications, setApplications] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -170,8 +173,16 @@ const AdminInstitutions = () => {
   return (
     <Container className="mt-4">
       <div className="d-flex justify-content-between align-items-center mb-4">
-        <h1>Institution Management</h1>
-        <div>
+        <div className="d-flex align-items-center gap-3">
+          <Button as={Link} to="/admin/dashboard" variant="outline-secondary">
+            ← Back to Dashboard
+          </Button>
+          <h1>Institution Management</h1>
+        </div>
+        <div className="d-flex gap-2">
+          <Button variant="outline-danger" onClick={() => logout()}>
+            Logout
+          </Button>
           <Button variant="success" onClick={() => setShowAddModal(true)} className="me-2">
             + Add Institution
           </Button>

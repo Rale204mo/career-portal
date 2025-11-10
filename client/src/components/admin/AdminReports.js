@@ -1,9 +1,12 @@
 // src/components/admin/AdminReports.js
 import React, { useState, useEffect } from 'react';
 import { Container, Card, Row, Col, Table, Button, Alert } from 'react-bootstrap';
+import { Link } from 'react-router-dom';
 import { realApi } from '../../api/config';
+import { useAuth } from '../contexts/AuthContext';
 
 const AdminReports = () => {
+  const { logout } = useAuth();
   const [applications, setApplications] = useState([]);
   const [institutions, setInstitutions] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -38,7 +41,7 @@ const AdminReports = () => {
     const pending = applications.filter(app => app.status === 'pending').length;
     const approved = applications.filter(app => app.status === 'approved').length;
     const rejected = applications.filter(app => app.status === 'rejected').length;
-    
+
     return { total, pending, approved, rejected };
   };
 
@@ -74,10 +77,20 @@ const AdminReports = () => {
   return (
     <Container className="mt-4">
       <div className="d-flex justify-content-between align-items-center mb-4">
-        <h1>System Reports</h1>
-        <Button variant="primary" onClick={fetchData}>
-          Refresh Reports
-        </Button>
+        <div className="d-flex align-items-center gap-3">
+          <Button as={Link} to="/admin" variant="outline-secondary">
+            ← Back to Dashboard
+          </Button>
+          <h1>System Reports</h1>
+        </div>
+        <div className="d-flex gap-2">
+          <Button variant="outline-danger" onClick={() => logout()}>
+            Logout
+          </Button>
+          <Button variant="primary" onClick={fetchData}>
+            Refresh Reports
+          </Button>
+        </div>
       </div>
 
       {error && <Alert variant="danger">{error}</Alert>}

@@ -135,7 +135,15 @@ const AdminDashboard = () => {
     }
   };
 
-  
+  const handleLogout = async () => {
+    try {
+      await logout();
+      navigate('/login');
+    } catch (error) {
+      console.error('Logout failed:', error);
+      setError('Logout failed. Please try again.');
+    }
+  };
 
   const getStatusBadge = (status) => {
     const variants = {
@@ -259,7 +267,7 @@ const AdminDashboard = () => {
           <p className="text-muted">Complete system administration and management</p>
         </div>
         <div className="d-flex gap-2">
-          <Button variant="outline-danger" onClick={() => logout()}>
+          <Button variant="outline-danger" onClick={handleLogout}>
             Logout
           </Button>
           <Button variant="primary" onClick={fetchDashboardData}>

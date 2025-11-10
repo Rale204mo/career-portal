@@ -1,6 +1,7 @@
 // src/components/student/StudentProfile.js
 import React, { useState, useEffect } from 'react';
 import { Container, Card, Form, Button, Alert, Row, Col } from 'react-bootstrap';
+import { Link } from 'react-router-dom';
 import { auth, db } from '../../firebase';
 import { doc, getDoc, setDoc } from 'firebase/firestore';
 
@@ -101,8 +102,15 @@ const StudentProfile = () => {
 
   return (
     <Container className="mt-4">
-      <h1>Student Profile</h1>
-      <p className="text-muted mb-4">Complete your profile to apply for courses</p>
+      <div className="d-flex justify-content-between align-items-center mb-4">
+        <div>
+          <h1>Student Profile</h1>
+          <p className="text-muted mb-0">Complete your profile to apply for courses</p>
+        </div>
+        <Button as={Link} to="/student-dashboard" variant="outline-secondary">
+          ← Back to Dashboard
+        </Button>
+      </div>
 
       {error && <Alert variant="danger">{error}</Alert>}
       {success && <Alert variant="success">{success}</Alert>}

@@ -1,9 +1,12 @@
 // src/components/admin/AdminUsers.js
 import React, { useState, useEffect } from 'react';
 import { Container, Card, Table, Button, Badge, Alert, Row, Col } from 'react-bootstrap';
+import { Link } from 'react-router-dom';
 import { realApi } from '../../api/config';
+import { useAuth } from '../contexts/AuthContext';
 
 const AdminUsers = () => {
+  const { logout } = useAuth();
   const [users, setUsers] = useState([]);
   const [applications, setApplications] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -19,10 +22,10 @@ const AdminUsers = () => {
       setError('');
 
       console.log('Fetching user data...');
-      
+
       const applicationsResponse = await realApi.getApplications();
       console.log('Applications response:', applicationsResponse);
-      
+
       const applicationsData = applicationsResponse.data || [];
       setApplications(applicationsData);
 
@@ -90,10 +93,20 @@ const AdminUsers = () => {
   return (
     <Container className="mt-4">
       <div className="d-flex justify-content-between align-items-center mb-4">
-        <h1>User Management</h1>
-        <Button variant="primary" onClick={fetchData}>
-          Refresh
-        </Button>
+        <div className="d-flex align-items-center gap-3">
+          <Button as={Link} to="/admin" variant="outline-secondary">
+            ← Back to Dashboard
+          </Button>
+          <h1>User Management</h1>
+        </div>
+        <div className="d-flex gap-2">
+          <Button variant="outline-danger" onClick={() => logout()}>
+            Logout
+          </Button>
+          <Button variant="primary" onClick={fetchData}>
+            Refresh
+          </Button>
+        </div>
       </div>
 
       {error && <Alert variant="danger">{error}</Alert>}
