@@ -1,5 +1,16 @@
 // src/api/config.js
+import { auth } from '../firebase';
+
 const API_BASE_URL = 'http://localhost:5000';
+
+// Helper function to get Firebase ID token
+const getAuthToken = async () => {
+  const user = auth.currentUser;
+  if (user) {
+    return await user.getIdToken();
+  }
+  throw new Error('User not authenticated');
+};
 
 export const realApi = {
   // Health check
@@ -75,9 +86,13 @@ export const realApi = {
 
   // Add faculty to institution
   addFaculty: async (institutionId, facultyData) => {
+    const token = await getAuthToken();
     const response = await fetch(`${API_BASE_URL}/institutions/${institutionId}/faculties`, {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${token}`
+      },
       body: JSON.stringify(facultyData)
     });
     if (!response.ok) throw new Error(`Failed to add faculty: ${response.status}`);
@@ -86,9 +101,13 @@ export const realApi = {
 
   // Update faculty
   updateFaculty: async (facultyId, updateData) => {
+    const token = await getAuthToken();
     const response = await fetch(`${API_BASE_URL}/faculties/${facultyId}`, {
       method: 'PUT',
-      headers: { 'Content-Type': 'application/json' },
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${token}`
+      },
       body: JSON.stringify(updateData)
     });
     if (!response.ok) throw new Error(`Failed to update faculty: ${response.status}`);
@@ -97,8 +116,12 @@ export const realApi = {
 
   // Delete faculty
   deleteFaculty: async (facultyId) => {
+    const token = await getAuthToken();
     const response = await fetch(`${API_BASE_URL}/faculties/${facultyId}`, {
-      method: 'DELETE'
+      method: 'DELETE',
+      headers: {
+        'Authorization': `Bearer ${token}`
+      }
     });
     if (!response.ok) throw new Error(`Failed to delete faculty: ${response.status}`);
     return await response.json();

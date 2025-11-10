@@ -9,6 +9,8 @@ const FacultyManagement = ({ onBack }) => {
   const [showModal, setShowModal] = useState(false);
   const [editingFaculty, setEditingFaculty] = useState(null);
   const [formData, setFormData] = useState({ name: '', description: '', code: '' });
+  const [showDeleteModal, setShowDeleteModal] = useState(false);
+  const [facultyToDelete, setFacultyToDelete] = useState(null);
 
   // Get instituteId with better error handling
   const getInstituteId = () => {
@@ -107,21 +109,36 @@ const FacultyManagement = ({ onBack }) => {
     setError(''); // Clear any previous errors
   };
 
-  const handleDelete = async (facultyId) => {
-    if (window.confirm('Are you sure you want to delete this faculty? This action cannot be undone.')) {
-      try {
-        const response = await realApi.deleteFaculty(facultyId);
-        if (response.success) {
-          alert('Faculty deleted successfully!');
-          fetchFaculties();
-        } else {
-          setError(response.error || 'Failed to delete faculty');
-        }
-      } catch (error) {
-        console.error('Error deleting faculty:', error);
-        setError('Failed to delete faculty: ' + error.message);
+  const handleDelete = (faculty) => {
+    setFacultyToDelete(faculty);
+    setShowDeleteModal(true);
+  };
+
+  const confirmDelete = async () => {
+    if (!facultyToDelete) return;
+
+    try {
+      setLoading(true);
+      const response = await realApi.deleteFaculty(facultyToDelete.id);
+      if (response.success) {
+        alert('Faculty deleted successfully!');
+        fetchFaculties();
+        setShowDeleteModal(false);
+        setFacultyToDelete(null);
+      } else {
+        setError(response.error || 'Failed to delete faculty');
       }
+    } catch (error) {
+      console.error('Error deleting faculty:', error);
+      setError('Failed to delete faculty: ' + error.message);
+    } finally {
+      setLoading(false);
     }
+  };
+
+  const cancelDelete = () => {
+    setShowDeleteModal(false);
+    setFacultyToDelete(null);
   };
 
   const cancelEdit = () => {
@@ -221,7 +238,7 @@ const FacultyManagement = ({ onBack }) => {
                           <Button
                             variant="outline-danger"
                             size="sm"
-                            onClick={() => handleDelete(faculty.id)}
+                            onClick={() => handleDelete(faculty)}
                             disabled={loading}
                           >
                             Delete
@@ -299,6 +316,25 @@ const FacultyManagement = ({ onBack }) => {
             </Button>
           </Modal.Footer>
         </Form>
+      </Modal>
+
+      {/* Delete Confirmation Modal */}
+      <Modal show={showDeleteModal} onHide={cancelDelete}>
+        <Modal.Header closeButton>
+          <Modal.Title>Confirm Delete</Modal.Title>
+        </Modal.Header>
+        <Modal.Body>
+          <p>Are you sure you want to delete the faculty <strong>{facultyToDelete?.name}</strong> ({facultyToDelete?.code})?</p>
+          <p className="text-danger">This action cannot be undone.</p>
+        </Modal.Body>
+        <Modal.Footer>
+          <Button variant="secondary" onClick={cancelDelete} disabled={loading}>
+            Cancel
+          </Button>
+          <Button variant="danger" onClick={confirmDelete} disabled={loading}>
+            {loading ? <Spinner size="sm" /> : 'Delete Faculty'}
+          </Button>
+        </Modal.Footer>
       </Modal>
     </Container>
   );

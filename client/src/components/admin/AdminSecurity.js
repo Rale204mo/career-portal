@@ -11,7 +11,7 @@ const AdminSecurity = () => {
     <Container className="mt-4">
       <div className="d-flex justify-content-between align-items-center mb-4">
         <div className="d-flex align-items-center gap-3">
-          <Button as={Link} to="/admin" variant="outline-secondary">
+          <Button as={Link} to="/admin/dashboard" variant="outline-secondary">
             ← Back to Dashboard
           </Button>
           <h1>Security Settings</h1>

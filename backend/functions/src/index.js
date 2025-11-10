@@ -147,6 +147,12 @@ app.put('/institutions/:id', authenticateFirebaseToken, requireRole(['admin', 'i
 app.delete('/institutions/:id', authenticateFirebaseToken, requireRole(['admin']), instController.deleteInstitution);
 app.get('/institutions/:id/courses', instController.getInstitutionCourses);
 
+// Faculty Routes
+app.get('/institutions/:institutionId/faculties', instController.getFaculties);
+app.post('/institutions/:institutionId/faculties', authenticateFirebaseToken, requireRole(['admin', 'institution']), instController.addFaculty);
+app.put('/faculties/:id', authenticateFirebaseToken, requireRole(['admin', 'institution']), instController.updateFaculty);
+app.delete('/faculties/:id', authenticateFirebaseToken, requireRole(['admin', 'institution']), instController.deleteFaculty);
+
 // Company Routes
 app.get('/jobs', compController.getJobs);
 app.post('/jobs', authenticateFirebaseToken, requireRole(['company', 'admin']), compController.createJob);

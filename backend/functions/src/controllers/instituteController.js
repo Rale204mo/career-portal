@@ -171,3 +171,118 @@ exports.getInstitutionCourses = async (req, res) => {
     });
   }
 };
+
+// ==================== FACULTY MANAGEMENT ====================
+
+// Get faculties by institution
+exports.getFaculties = async (req, res) => {
+  try {
+    const { institutionId } = req.params;
+    const facultiesRef = db.collection('faculties');
+    const snapshot = await facultiesRef.where('institutionId', '==', institutionId).get();
+
+    const faculties = [];
+    snapshot.forEach(doc => {
+      faculties.push({
+        id: doc.id,
+        ...doc.data()
+      });
+    });
+
+    res.json({
+      message: 'Faculties retrieved successfully',
+      data: faculties,
+      count: faculties.length
+    });
+  } catch (error) {
+    console.error('Error fetching faculties:', error);
+    res.status(500).json({
+      error: 'Failed to fetch faculties',
+      details: error.message
+    });
+  }
+};
+
+// Add faculty to institution
+exports.addFaculty = async (req, res) => {
+  try {
+    const { institutionId } = req.params;
+    const facultyData = {
+      ...req.body,
+      institutionId,
+      createdAt: admin.firestore.FieldValue.serverTimestamp(),
+      updatedAt: admin.firestore.FieldValue.serverTimestamp()
+    };
+
+    const docRef = await db.collection('faculties').add(facultyData);
+
+    res.status(201).json({
+      message: 'Faculty created successfully',
+      data: {
+        id: docRef.id,
+        ...facultyData
+      }
+    });
+  } catch (error) {
+    console.error('Error creating faculty:', error);
+    res.status(500).json({
+      error: 'Failed to create faculty',
+      details: error.message
+    });
+  }
+};
+
+// Update faculty
+exports.updateFaculty = async (req, res) => {
+  try {
+    const { id } = req.params;
+    const updateData = {
+      ...req.body,
+      updatedAt: admin.firestore.FieldValue.serverTimestamp()
+    };
+
+    await db.collection('faculties').doc(id).update(updateData);
+
+    res.json({
+      message: 'Faculty updated successfully',
+      data: {
+        id,
+        ...updateData
+      }
+    });
+  } catch (error) {
+    console.error('Error updating faculty:', error);
+    if (error.code === 'not-found') {
+      return res.status(404).json({ error: 'Faculty not found' });
+    }
+    res.status(500).json({
+      error: 'Failed to update faculty',
+      details: error.message
+    });
+  }
+};
+
+// Delete faculty
+exports.deleteFaculty = async (req, res) => {
+  try {
+    const { id } = req.params;
+
+    // Check if faculty exists
+    const facultyDoc = await db.collection('faculties').doc(id).get();
+    if (!facultyDoc.exists) {
+      return res.status(404).json({ error: 'Faculty not found' });
+    }
+
+    await db.collection('faculties').doc(id).delete();
+
+    res.json({
+      message: 'Faculty deleted successfully'
+    });
+  } catch (error) {
+    console.error('Error deleting faculty:', error);
+    res.status(500).json({
+      error: 'Failed to delete faculty',
+      details: error.message
+    });
+  }
+};
