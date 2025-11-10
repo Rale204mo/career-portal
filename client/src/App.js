@@ -26,6 +26,8 @@ import Universities from './components/student/Universities';
 // Admin Components
 import AdminDashboard from './components/admin/AdminDashboard';
 import AdminInstitutions from './components/admin/AdminInstitutions';
+import AdminFaculties from './components/admin/AdminFaculties';
+import AdminCourses from './components/admin/AdminCourses';
 import AdminUsers from './components/admin/AdminUsers';
 import AdminCompanies from './components/admin/AdminCompanies';
 import AdminReports from './components/admin/AdminReports';
@@ -73,14 +75,16 @@ function App() {
             <Route path="company/post-job" element={<JobPosting />} />
 
             {/* Admin Routes */}
-            <Route path="/admin" element={<AdminDashboard />} />
+            <Route path="/admin" element={<ProtectedRoute allowedRoles={['admin']}><AdminDashboard /></ProtectedRoute>} />
             <Route path="/admin/login" element={<AdminLogin />} />
-            <Route path="/admin/institutions" element={<AdminInstitutions />} />
-            <Route path="/admin/users" element={<AdminUsers />} />
-            <Route path="/admin/companies" element={<AdminCompanies />} />
-            <Route path="/admin/admissions" element={<AdminAdmissions />} />
-            <Route path="/admin/reports" element={<AdminReports />} />
-            <Route path="/admin/security" element={<AdminSecurity />} />
+            <Route path="/admin/institutions" element={<ProtectedRoute allowedRoles={['admin']}><AdminInstitutions /></ProtectedRoute>} />
+            <Route path="/admin/faculties" element={<ProtectedRoute allowedRoles={['admin']}><AdminFaculties /></ProtectedRoute>} />
+            <Route path="/admin/courses" element={<ProtectedRoute allowedRoles={['admin']}><AdminCourses /></ProtectedRoute>} />
+            <Route path="/admin/users" element={<ProtectedRoute allowedRoles={['admin']}><AdminUsers /></ProtectedRoute>} />
+            <Route path="/admin/companies" element={<ProtectedRoute allowedRoles={['admin']}><AdminCompanies /></ProtectedRoute>} />
+            <Route path="/admin/admissions" element={<ProtectedRoute allowedRoles={['admin']}><AdminAdmissions /></ProtectedRoute>} />
+            <Route path="/admin/reports" element={<ProtectedRoute allowedRoles={['admin']}><AdminReports /></ProtectedRoute>} />
+            <Route path="/admin/security" element={<ProtectedRoute allowedRoles={['admin']}><AdminSecurity /></ProtectedRoute>} />
 
             {/* Catch-all route */}
             <Route path="*" element={<div className="container mt-5 text-center"><h1>404 - Page Not Found</h1></div>} />

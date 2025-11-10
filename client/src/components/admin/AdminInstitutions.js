@@ -142,6 +142,16 @@ const AdminInstitutions = () => {
     }
   };
 
+  const handleManageFaculties = (institution) => {
+    // Navigate to faculty management for this institution
+    window.location.href = `/admin/faculties?institution=${institution.id}`;
+  };
+
+  const handleManageCourses = (institution) => {
+    // Navigate to course management for this institution
+    window.location.href = `/admin/courses?institution=${institution.id}`;
+  };
+
   const getInstitutionStats = (institutionId) => {
     const institutionApps = applications.filter(app => app.institutionId === institutionId);
     return {
@@ -250,13 +260,27 @@ const AdminInstitutions = () => {
                         <Badge bg="success">{stats.approved}</Badge>
                       </td>
                       <td>
-                        <div className="d-flex gap-1">
+                        <div className="d-flex gap-1 flex-wrap">
                           <Button
                             variant="outline-primary"
                             size="sm"
                             onClick={() => handleViewDetails(institution)}
                           >
                             View
+                          </Button>
+                          <Button
+                            variant="outline-info"
+                            size="sm"
+                            onClick={() => handleManageFaculties(institution)}
+                          >
+                            Faculties
+                          </Button>
+                          <Button
+                            variant="outline-success"
+                            size="sm"
+                            onClick={() => handleManageCourses(institution)}
+                          >
+                            Courses
                           </Button>
                           <Button
                             variant="outline-warning"
