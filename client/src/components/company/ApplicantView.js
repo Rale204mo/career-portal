@@ -7,15 +7,16 @@ import {
   Button,
   Form,
   Badge,
-  Spinner
+  Spinner,
+  Alert
 } from 'react-bootstrap';
-import { Link } from 'react-router-dom';
 
 const ApplicantView = () => {
   const [applicants, setApplicants] = useState([]);
   const [selectedJob, setSelectedJob] = useState('');
   const [jobs, setJobs] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState('');
   const [filters, setFilters] = useState({
     minScore: 0,
     status: 'all'
@@ -23,189 +24,209 @@ const ApplicantView = () => {
 
   useEffect(() => {
     fetchJobs();
-    fetchApplicants();
+  }, []);
+
+  useEffect(() => {
+    if (selectedJob) {
+      fetchApplicants();
+    }
   }, [selectedJob, filters]);
 
   const fetchJobs = async () => {
-    // Mock data - replace with API call
-    setJobs([
-      { id: 1, title: 'Senior Developer', department: 'Engineering' },
-      { id: 2, title: 'Data Analyst', department: 'Analytics' },
-      { id: 3, title: 'Product Manager', department: 'Product' }
-    ]);
+    try {
+      const token = localStorage.getItem('token');
+      const response = await fetch('http://localhost:5000/api/company/jobs', {
+        headers: {
+          'Authorization': `Bearer ${token}`,
+          'Content-Type': 'application/json'
+        }
+      });
+
+      if (!response.ok) {
+        throw new Error('Failed to fetch jobs');
+      }
+
+      const data = await response.json();
+      setJobs(data.data || []);
+    } catch (err) {
+      console.error('Error fetching jobs:', err);
+      setError('Failed to load jobs');
+    }
   };
 
   const fetchApplicants = async () => {
+    if (!selectedJob) return;
+
     setLoading(true);
-    // Simulate API delay
-    setTimeout(() => {
-      // Mock data - replace with API call
-      const mockApplicants = [
-        {
-          id: 1,
-          name: 'John Doe',
-          email: 'john@example.com',
-          jobTitle: 'Senior Developer',
-          matchScore: 85,
-          status: 'qualified',
-          academicPerformance: 'GPA: 3.8/4.0',
-          experience: '3 years',
-          certificates: ['AWS Certified', 'Google Cloud'],
-          lastUpdated: '2024-01-15'
-        },
-        {
-          id: 2,
-          name: 'Jane Smith',
-          email: 'jane@example.com',
-          jobTitle: 'Data Analyst',
-          matchScore: 92,
-          status: 'highly-qualified',
-          academicPerformance: 'GPA: 3.9/4.0',
-          experience: '2 years',
-          certificates: ['Data Science Specialization'],
-          lastUpdated: '2024-01-14'
-        },
-        {
-          id: 3,
-          name: 'Mike Johnson',
-          email: 'mike@example.com',
-          jobTitle: 'Senior Developer',
-          matchScore: 78,
-          status: 'qualified',
-          academicPerformance: 'GPA: 3.6/4.0',
-          experience: '4 years',
-          certificates: ['Java Certification', 'Spring Framework'],
-          lastUpdated: '2024-01-13'
-        },
-        {
-          id: 4,
-          name: 'Sarah Wilson',
-          email: 'sarah@example.com',
-          jobTitle: 'Product Manager',
-          matchScore: 95,
-          status: 'highly-qualified',
-          academicPerformance: 'GPA: 3.9/4.0',
-          experience: '5 years',
-          certificates: ['PMP Certification', 'Agile Scrum Master'],
-          lastUpdated: '2024-01-16'
+    setError('');
+
+    try {
+      const token = localStorage.getItem('token');
+      const response = await fetch(`http://localhost:5000/api/company/jobs/${selectedJob}/applicants?minScore=${filters.minScore}&status=${filters.status}`, {
+        headers: {
+          'Authorization': `Bearer ${token}`,
+          'Content-Type': 'application/json'
         }
-      ];
+      });
 
-      // Filter applicants based on selection - only show highly-qualified by default
-      let filtered = mockApplicants.filter(app => app.status === 'highly-qualified');
-      if (selectedJob) {
-        filtered = filtered.filter(app => app.jobTitle === selectedJob);
-      }
-      if (filters.minScore > 0) {
-        filtered = filtered.filter(app => app.matchScore >= filters.minScore);
-      }
-      if (filters.status !== 'all') {
-        filtered = filtered.filter(app => app.status === filters.status);
+      if (!response.ok) {
+        throw new Error('Failed to fetch applicants');
       }
 
-      setApplicants(filtered);
+      const data = await response.json();
+
+      // Transform the data to match the expected format
+      const transformedApplicants = data.applicants.map(match => ({
+        id: match.student.id,
+        name: match.student.name,
+        email: match.student.email,
+        jobTitle: data.job.title,
+        matchScore: Math.round(match.matchScore * 100),
+        status: getStatusFromCompatibility(match.compatibility),
+        academicPerformance: `GPA: ${match.student.gpa || 'N/A'}`,
+        experience: match.student.experience || 'Not specified',
+        certificates: match.student.certificates || [],
+        university: match.student.university,
+        course: match.student.course,
+        year: match.student.year,
+        skills: match.student.skills || [],
+        lastUpdated: new Date().toISOString().split('T')[0],
+        compatibility: match.compatibility,
+        breakdown: match.breakdown
+      }));
+
+      setApplicants(transformedApplicants);
+    } catch (err) {
+      console.error('Error fetching applicants:', err);
+      setError('Failed to load applicants');
+      setApplicants([]);
+    } finally {
       setLoading(false);
-    }, 1000);
+    }
   };
 
-  const getStatusVariant = (status) => {
-    const variants = {
-      'qualified': 'warning',
-      'highly-qualified': 'success',
-      'not-qualified': 'danger'
-    };
-    return variants[status] || 'secondary';
+  const getStatusFromCompatibility = (compatibility) => {
+    switch (compatibility) {
+      case 'Excellent': return 'highly-qualified';
+      case 'Good': return 'qualified';
+      default: return 'needs-review';
+    }
   };
 
-  const getScoreVariant = (score) => {
-    if (score >= 90) return 'success';
-    if (score >= 80) return 'primary';
-    if (score >= 70) return 'warning';
-    return 'danger';
+  const getStatusBadgeVariant = (status) => {
+    switch (status) {
+      case 'highly-qualified': return 'success';
+      case 'qualified': return 'primary';
+      case 'needs-review': return 'warning';
+      default: return 'secondary';
+    }
   };
 
-  const scheduleInterview = (applicantId) => {
-    // API call to schedule interview
-    console.log('Schedule interview for:', applicantId);
-    alert(`Interview scheduled for applicant #${applicantId}`);
+  const scheduleInterview = async (applicantId) => {
+    try {
+      const token = localStorage.getItem('token');
+      await fetch('http://localhost:5000/api/company/interviews', {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${token}`,
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({
+          applicantId,
+          jobId: selectedJob,
+          date: new Date().toISOString().split('T')[0],
+          time: '10:00',
+          notes: 'Initial interview scheduled'
+        })
+      });
+      alert('Interview scheduled successfully!');
+    } catch (err) {
+      console.error('Error scheduling interview:', err);
+      alert('Failed to schedule interview');
+    }
   };
 
   const viewFullProfile = (applicantId) => {
-    console.log('View full profile for:', applicantId);
-    // Navigate to applicant detail page
+    // Navigate to detailed profile view
+    window.open(`/company/applicant/${applicantId}`, '_blank');
   };
 
   const downloadResume = (applicantId) => {
-    console.log('Download resume for:', applicantId);
-    // Implement resume download
+    // In a real app, this would download the resume
+    alert('Resume download feature coming soon!');
   };
 
   return (
-    <Container className="py-4">
-      {/* Header */}
-      <div className="d-flex justify-content-between align-items-center mb-5">
-        <div className="text-center flex-grow-1">
-          <h2 className="fw-bold text-dark mb-2">Interview-Ready Applicants</h2>
-          <p className="text-muted">View and manage applicants ready for interview consideration</p>
-        </div>
-        <Button as={Link} to="/company-dashboard" variant="outline-secondary">
-          ← Back to Dashboard
+    <Container fluid className="py-4">
+      <div className="mb-4">
+        <Button variant="outline-secondary" className="mb-3" onClick={() => window.history.back()}>
+          ← Back
         </Button>
+        <h2 className="fw-bold text-dark mb-2">👥 Applicant Management</h2>
+        <p className="text-muted">View and manage job applicants with AI-powered matching</p>
       </div>
 
+      {error && <Alert variant="danger">{error}</Alert>}
+
       {/* Filters */}
-      <Card className="border-0 shadow-sm mb-4">
+      <Card className="mb-4 shadow-sm">
         <Card.Body>
-          <Row className="g-3">
-            <Col md={3}>
+          <Row className="align-items-end">
+            <Col md={4}>
               <Form.Group>
-                <Form.Label className="fw-semibold">Filter by Job</Form.Label>
+                <Form.Label>Select Job</Form.Label>
                 <Form.Select
                   value={selectedJob}
                   onChange={(e) => setSelectedJob(e.target.value)}
                 >
-                  <option value="">All Jobs</option>
+                  <option value="">Choose a job...</option>
                   {jobs.map(job => (
-                    <option key={job.id} value={job.title}>{job.title}</option>
+                    <option key={job.id} value={job.id}>
+                      {job.title} ({job.applicants || 0} applicants)
+                    </option>
                   ))}
                 </Form.Select>
               </Form.Group>
             </Col>
-
             <Col md={3}>
               <Form.Group>
-                <Form.Label className="fw-semibold">Minimum Match Score</Form.Label>
-                <Form.Control
-                  type="number"
+                <Form.Label>Minimum Match Score</Form.Label>
+                <Form.Range
                   min="0"
                   max="100"
                   value={filters.minScore}
-                  onChange={(e) => setFilters({...filters, minScore: parseInt(e.target.value) || 0})}
+                  onChange={(e) => setFilters({...filters, minScore: e.target.value})}
                 />
+                <div className="text-center mt-1">
+                  <small className="text-muted">{filters.minScore}%</small>
+                </div>
               </Form.Group>
             </Col>
-
             <Col md={3}>
               <Form.Group>
-                <Form.Label className="fw-semibold">Status</Form.Label>
+                <Form.Label>Status Filter</Form.Label>
                 <Form.Select
                   value={filters.status}
                   onChange={(e) => setFilters({...filters, status: e.target.value})}
                 >
-                  <option value="all">All Status</option>
-                  <option value="qualified">Qualified</option>
+                  <option value="all">All Applicants</option>
                   <option value="highly-qualified">Highly Qualified</option>
+                  <option value="qualified">Qualified</option>
+                  <option value="needs-review">Needs Review</option>
                 </Form.Select>
               </Form.Group>
             </Col>
-
-            <Col md={3} className="d-flex align-items-end">
+            <Col md={2}>
               <Button
-                variant="primary"
-                onClick={fetchApplicants}
+                variant="outline-secondary"
+                onClick={() => {
+                  setSelectedJob('');
+                  setFilters({ minScore: 0, status: 'all' });
+                  setApplicants([]);
+                }}
                 className="w-100"
               >
-                Apply Filters
+                Clear Filters
               </Button>
             </Col>
           </Row>
@@ -213,111 +234,127 @@ const ApplicantView = () => {
       </Card>
 
       {/* Applicants List */}
-      {loading ? (
-        <div className="text-center py-5">
-          <Spinner animation="border" variant="primary" />
-          <p className="text-muted mt-2">Loading applicants...</p>
-        </div>
-      ) : (
-        <div className="space-y-3">
-          {applicants.map(applicant => (
-            <Card key={applicant.id} className="border-0 shadow-sm">
-              <Card.Body>
-                <Row className="align-items-start">
-                  <Col md={8}>
-                    <div className="d-flex justify-content-between align-items-start mb-3">
-                      <div>
-                        <h5 className="fw-bold text-dark mb-1">{applicant.name}</h5>
-                        <p className="text-muted mb-2">{applicant.email}</p>
-                      </div>
-                      <div className="text-end">
-                        <Badge bg={getStatusVariant(applicant.status)} className="mb-2">
-                          {applicant.status.replace('-', ' ').toUpperCase()}
-                        </Badge>
-                        <div>
-                          <h4 className="fw-bold text-primary mb-0">{applicant.matchScore}%</h4>
-                          <small className="text-muted">Match Score</small>
-                        </div>
-                      </div>
-                    </div>
+      {selectedJob && (
+        <div>
+          {loading ? (
+            <div className="text-center py-5">
+              <Spinner animation="border" variant="primary" />
+              <p className="mt-2 text-muted">Loading applicants...</p>
+            </div>
+          ) : (
+            <>
+              <div className="mb-3">
+                <h5>Found {applicants.length} applicants</h5>
+              </div>
 
-                    <Row className="mb-3">
-                      <Col sm={4}>
-                        <strong>Applied for:</strong>
-                        <br />
-                        <span className="text-muted">{applicant.jobTitle}</span>
+              {applicants.map((applicant) => (
+                <Card key={applicant.id} className="mb-3 shadow-sm">
+                  <Card.Body>
+                    <Row>
+                      <Col md={2}>
+                        <div className="text-center">
+                          <div className="mb-2">
+                            <h4 className="text-primary fw-bold">{applicant.matchScore}%</h4>
+                            <small className="text-muted">Match Score</small>
+                          </div>
+                          <Badge bg={getStatusBadgeVariant(applicant.status)} className="px-2 py-1">
+                            {applicant.status.replace('-', ' ').toUpperCase()}
+                          </Badge>
+                        </div>
                       </Col>
-                      <Col sm={4}>
-                        <strong>Academic Performance:</strong>
-                        <br />
-                        <span className="text-muted">{applicant.academicPerformance}</span>
+
+                      <Col md={6}>
+                        <h5 className="mb-2">{applicant.name}</h5>
+                        <p className="text-muted mb-2">{applicant.email}</p>
+                        <div className="mb-2">
+                          <strong>University:</strong> {applicant.university} | <strong>Course:</strong> {applicant.course} | <strong>Year:</strong> {applicant.year}
+                        </div>
+                        <div className="mb-2">
+                          <strong>Academic Performance:</strong> {applicant.academicPerformance}
+                        </div>
+                        <div className="mb-2">
+                          <strong>Experience:</strong> {applicant.experience}
+                        </div>
+                        <div className="mb-3">
+                          <strong>Skills:</strong>
+                          <div className="d-flex flex-wrap gap-1 mt-1">
+                            {applicant.skills.map((skill, index) => (
+                              <Badge key={index} bg="outline-primary" className="px-2 py-1">
+                                {skill}
+                              </Badge>
+                            ))}
+                          </div>
+                        </div>
+                        <div className="mb-3">
+                          <strong>Certificates:</strong>
+                          <div className="d-flex flex-wrap gap-1 mt-1">
+                            {applicant.certificates.map((cert, index) => (
+                              <Badge key={index} bg="light" text="dark" className="px-2 py-1">
+                                {cert}
+                              </Badge>
+                            ))}
+                          </div>
+                        </div>
                       </Col>
-                      <Col sm={4}>
-                        <strong>Experience:</strong>
-                        <br />
-                        <span className="text-muted">{applicant.experience}</span>
+
+                      <Col md={4}>
+                        <div className="d-grid gap-2">
+                          <Button
+                            variant="success"
+                            onClick={() => scheduleInterview(applicant.id)}
+                            className="mb-2"
+                          >
+                            📅 Schedule Interview
+                          </Button>
+                          <Button
+                            variant="outline-primary"
+                            onClick={() => viewFullProfile(applicant.id)}
+                            className="mb-2"
+                          >
+                            👤 View Full Profile
+                          </Button>
+                          <Button
+                            variant="outline-dark"
+                            onClick={() => downloadResume(applicant.id)}
+                          >
+                            📄 Download Resume
+                          </Button>
+                        </div>
                       </Col>
                     </Row>
+                  </Card.Body>
+                </Card>
+              ))}
 
-                    <div className="mb-3">
-                      <strong>Certificates:</strong>
-                      <div className="d-flex flex-wrap gap-2 mt-1">
-                        {applicant.certificates.map((cert, index) => (
-                          <Badge key={index} bg="light" text="dark" className="px-2 py-1">
-                            {cert}
-                          </Badge>
-                        ))}
-                      </div>
-                    </div>
-                  </Col>
-
-                  <Col md={4}>
-                    <div className="d-grid gap-2">
-                      <Button
-                        variant="success"
-                        onClick={() => scheduleInterview(applicant.id)}
-                        className="mb-2"
-                      >
-                        Schedule Interview
-                      </Button>
-                      <Button
-                        variant="outline-primary"
-                        onClick={() => viewFullProfile(applicant.id)}
-                        className="mb-2"
-                      >
-                        View Full Profile
-                      </Button>
-                      <Button
-                        variant="outline-dark"
-                        onClick={() => downloadResume(applicant.id)}
-                      >
-                        Download Resume
-                      </Button>
-                    </div>
-                  </Col>
-                </Row>
-              </Card.Body>
-            </Card>
-          ))}
-
-          {applicants.length === 0 && (
-            <Card className="border-0 shadow-sm">
-              <Card.Body className="text-center py-5">
-                <h5 className="text-muted">No applicants found</h5>
-                <p className="text-muted mb-3">No applicants match your current filter criteria.</p>
-                <Button
-                  variant="outline-primary"
-                  onClick={() => {
-                    setSelectedJob('');
-                    setFilters({ minScore: 0, status: 'all' });
-                  }}
-                >
-                  Clear Filters
-                </Button>
-              </Card.Body>
-            </Card>
+              {applicants.length === 0 && !loading && (
+                <Card className="border-0 shadow-sm">
+                  <Card.Body className="text-center py-5">
+                    <h5 className="text-muted">No applicants found</h5>
+                    <p className="text-muted mb-3">No applicants match your current filter criteria.</p>
+                    <Button
+                      variant="outline-primary"
+                      onClick={() => {
+                        setSelectedJob('');
+                        setFilters({ minScore: 0, status: 'all' });
+                      }}
+                    >
+                      Clear Filters
+                    </Button>
+                  </Card.Body>
+                </Card>
+              )}
+            </>
           )}
         </div>
+      )}
+
+      {!selectedJob && (
+        <Card className="border-0 shadow-sm">
+          <Card.Body className="text-center py-5">
+            <h5 className="text-muted">Select a job to view applicants</h5>
+            <p className="text-muted">Choose a job posting from the dropdown above to see matched applicants.</p>
+          </Card.Body>
+        </Card>
       )}
     </Container>
   );

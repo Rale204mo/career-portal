@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
-import { Link } from 'react-router-dom';
+import { Card, Form, Button, Alert, Row, Col } from 'react-bootstrap';
 
-const CompanyProfile = () => {
+export default function CompanyProfile() {
   const [profile, setProfile] = useState({
     companyName: '',
     industry: '',
@@ -12,368 +12,315 @@ const CompanyProfile = () => {
     phone: '',
     address: '',
     foundedYear: '',
+    benefits: '',
+    culture: '',
     logo: '',
     linkedin: '',
     twitter: '',
-    facebook: '',
-    benefits: '',
-    culture: ''
+    facebook: ''
   });
-
-  const [isEditing, setIsEditing] = useState(false);
+  const [status, setStatus] = useState('');
   const [loading, setLoading] = useState(false);
+  const [fetchLoading, setFetchLoading] = useState(true);
 
   useEffect(() => {
-    fetchCompanyProfile();
+    fetchProfile();
   }, []);
 
-  const fetchCompanyProfile = async () => {
-    // Mock data - replace with API call
-    setProfile({
-      companyName: 'Tech Innovations Inc.',
-      industry: 'Information Technology',
-      size: '100-500',
-      website: 'https://techinnovations.com',
-      description: 'Leading technology company specializing in innovative solutions.',
-      contactEmail: 'hr@techinnovations.com',
-      phone: '+1-555-0123',
-      address: '123 Tech Street, Silicon Valley, CA',
-      foundedYear: '2015',
-      logo: '',
-      linkedin: 'https://linkedin.com/company/techinnovations',
-      twitter: 'https://twitter.com/techinnovations',
-      facebook: 'https://facebook.com/techinnovations',
-      benefits: 'Health insurance, 401k matching, flexible work hours, professional development budget',
-      culture: 'We foster innovation, collaboration, and work-life balance. Our team values diversity and continuous learning.'
-    });
+  const fetchProfile = async () => {
+    try {
+      const token = localStorage.getItem('token');
+      const response = await fetch('http://localhost:5000/api/company/profile', {
+        headers: {
+          'Authorization': `Bearer ${token}`,
+          'Content-Type': 'application/json'
+        }
+      });
+
+      if (!response.ok) {
+        throw new Error('Failed to fetch profile');
+      }
+
+      const data = await response.json();
+      setProfile(data);
+    } catch (err) {
+      console.error('Error fetching profile:', err);
+      setStatus('Failed to load profile data');
+    } finally {
+      setFetchLoading(false);
+    }
+  };
+
+  const handleChange = (e) => {
+    setProfile({ ...profile, [e.target.name]: e.target.value });
   };
 
   const handleSubmit = async (e) => {
     e.preventDefault();
+    setStatus('');
     setLoading(true);
 
     try {
-      // API call to update profile
-      console.log('Updating profile:', profile);
-      // await updateCompanyProfile(profile);
-      setIsEditing(false);
-    } catch (error) {
-      console.error('Error updating profile:', error);
+      const token = localStorage.getItem('token');
+      const response = await fetch('http://localhost:5000/api/company/profile', {
+        method: 'PUT',
+        headers: {
+          'Authorization': `Bearer ${token}`,
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify(profile)
+      });
+
+      if (!response.ok) {
+        throw new Error('Failed to update profile');
+      }
+
+      setStatus('✅ Profile updated successfully!');
+    } catch (err) {
+      console.error('Error updating profile:', err);
+      setStatus('❌ Failed to update profile. Try again later.');
     } finally {
       setLoading(false);
     }
   };
 
-  const handleChange = (e) => {
-    setProfile({
-      ...profile,
-      [e.target.name]: e.target.value
-    });
-  };
-
-  const handleLogoUpload = (e) => {
-    const file = e.target.files[0];
-    if (file) {
-      // In a real app, you'd upload to a server and get back a URL
-      const reader = new FileReader();
-      reader.onload = (e) => {
-        setProfile({
-          ...profile,
-          logo: e.target.result
-        });
-      };
-      reader.readAsDataURL(file);
-    }
-  };
+  if (fetchLoading) {
+    return (
+      <div className="container py-4 text-center">
+        <div className="spinner-border text-primary" role="status">
+          <span className="visually-hidden">Loading...</span>
+        </div>
+        <p className="mt-2 text-muted">Loading company profile...</p>
+      </div>
+    );
+  }
 
   return (
-    <div className="max-w-4xl mx-auto p-6">
-      <div className="flex justify-between items-center mb-6">
-        <div>
-          <h1 className="text-2xl font-bold">Company Profile</h1>
-          <p className="text-gray-600 text-sm mt-1">Manage your company information and profile</p>
-        </div>
-        <div className="flex gap-2">
-          <Link
-            to="/company-dashboard"
-            className="bg-gray-500 text-white px-4 py-2 rounded-md hover:bg-gray-600 inline-block"
-          >
-            ← Back to Dashboard
-          </Link>
-          <button
-            onClick={() => setIsEditing(!isEditing)}
-            className="bg-blue-600 text-white px-4 py-2 rounded-md hover:bg-blue-700"
-          >
-            {isEditing ? 'Cancel Editing' : 'Edit Profile'}
-          </button>
-        </div>
-      </div>
+    <div className="container py-4">
+      <Button variant="outline-secondary" className="mb-3" onClick={() => window.history.back()}>
+        ← Back
+      </Button>
+      <Card className="shadow-sm">
+        <Card.Header className="bg-primary text-white">
+          <h3 className="mb-0">🏢 Company Profile</h3>
+          <p className="mb-0 opacity-75">Manage your company information and settings</p>
+        </Card.Header>
 
-      <form onSubmit={handleSubmit}>
-        <div className="bg-white shadow rounded-lg p-6 space-y-6">
-          {/* Logo Section */}
-          <div>
-            <h2 className="text-lg font-semibold mb-4">Company Logo</h2>
-            <div className="flex items-center space-x-4">
-              {profile.logo ? (
-                <img
-                  src={profile.logo}
-                  alt="Company Logo"
-                  className="w-20 h-20 object-cover rounded-lg border"
-                />
-              ) : (
-                <div className="w-20 h-20 bg-gray-200 rounded-lg flex items-center justify-center">
-                  <span className="text-gray-500 text-sm">No Logo</span>
-                </div>
-              )}
-              {isEditing && (
-                <div>
-                  <input
-                    type="file"
-                    accept="image/*"
-                    onChange={handleLogoUpload}
-                    className="hidden"
-                    id="logo-upload"
-                  />
-                  <label
-                    htmlFor="logo-upload"
-                    className="bg-gray-500 text-white px-4 py-2 rounded-md hover:bg-gray-600 cursor-pointer"
-                  >
-                    Upload Logo
-                  </label>
-                </div>
-              )}
-            </div>
-          </div>
+        <Card.Body>
+          {status && <Alert variant={status.includes("✅") ? "success" : "danger"}>{status}</Alert>}
 
-          {/* Basic Information */}
-          <div>
-            <h2 className="text-lg font-semibold mb-4">Basic Information</h2>
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              <div>
-                <label className="block text-sm font-medium text-gray-700">Company Name</label>
-                <input
-                  type="text"
-                  name="companyName"
-                  required
-                  disabled={!isEditing}
-                  className="mt-1 block w-full border border-gray-300 rounded-md p-2 disabled:bg-gray-100"
-                  value={profile.companyName}
-                  onChange={handleChange}
-                />
-              </div>
+          <Form onSubmit={handleSubmit}>
+            {/* Basic Information */}
+            <div className="mb-4">
+              <h5 className="text-primary mb-3">📋 Basic Information</h5>
+              <Row>
+                <Col md={6}>
+                  <Form.Group className="mb-3">
+                    <Form.Label>Company Name *</Form.Label>
+                    <Form.Control
+                      type="text"
+                      name="companyName"
+                      value={profile.companyName}
+                      onChange={handleChange}
+                      required
+                    />
+                  </Form.Group>
+                </Col>
+                <Col md={6}>
+                  <Form.Group className="mb-3">
+                    <Form.Label>Industry</Form.Label>
+                    <Form.Control
+                      type="text"
+                      name="industry"
+                      value={profile.industry}
+                      onChange={handleChange}
+                      placeholder="e.g. Information Technology"
+                    />
+                  </Form.Group>
+                </Col>
+              </Row>
 
-              <div>
-                <label className="block text-sm font-medium text-gray-700">Industry</label>
-                <input
-                  type="text"
-                  name="industry"
-                  required
-                  disabled={!isEditing}
-                  className="mt-1 block w-full border border-gray-300 rounded-md p-2 disabled:bg-gray-100"
-                  value={profile.industry}
-                  onChange={handleChange}
-                />
-              </div>
-            </div>
+              <Row>
+                <Col md={6}>
+                  <Form.Group className="mb-3">
+                    <Form.Label>Company Size</Form.Label>
+                    <Form.Select name="size" value={profile.size} onChange={handleChange}>
+                      <option value="">Select size</option>
+                      <option value="1-10">1-10 employees</option>
+                      <option value="11-50">11-50 employees</option>
+                      <option value="51-200">51-200 employees</option>
+                      <option value="201-500">201-500 employees</option>
+                      <option value="501-1000">501-1000 employees</option>
+                      <option value="1000+">1000+ employees</option>
+                    </Form.Select>
+                  </Form.Group>
+                </Col>
+                <Col md={6}>
+                  <Form.Group className="mb-3">
+                    <Form.Label>Founded Year</Form.Label>
+                    <Form.Control
+                      type="number"
+                      name="foundedYear"
+                      value={profile.foundedYear}
+                      onChange={handleChange}
+                      min="1900"
+                      max={new Date().getFullYear()}
+                      placeholder="e.g. 2015"
+                    />
+                  </Form.Group>
+                </Col>
+              </Row>
 
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mt-4">
-              <div>
-                <label className="block text-sm font-medium text-gray-700">Company Size</label>
-                <select
-                  name="size"
-                  disabled={!isEditing}
-                  className="mt-1 block w-full border border-gray-300 rounded-md p-2 disabled:bg-gray-100"
-                  value={profile.size}
-                  onChange={handleChange}
-                >
-                  <option value="1-10">1-10 employees</option>
-                  <option value="11-50">11-50 employees</option>
-                  <option value="51-200">51-200 employees</option>
-                  <option value="201-500">201-500 employees</option>
-                  <option value="501-1000">501-1000 employees</option>
-                  <option value="1000+">1000+ employees</option>
-                </select>
-              </div>
-
-              <div>
-                <label className="block text-sm font-medium text-gray-700">Founded Year</label>
-                <input
-                  type="number"
-                  name="foundedYear"
-                  disabled={!isEditing}
-                  className="mt-1 block w-full border border-gray-300 rounded-md p-2 disabled:bg-gray-100"
-                  value={profile.foundedYear}
-                  onChange={handleChange}
-                />
-              </div>
-            </div>
-          </div>
-
-          {/* Contact Information */}
-          <div>
-            <h2 className="text-lg font-semibold mb-4">Contact Information</h2>
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              <div>
-                <label className="block text-sm font-medium text-gray-700">Contact Email</label>
-                <input
-                  type="email"
-                  name="contactEmail"
-                  required
-                  disabled={!isEditing}
-                  className="mt-1 block w-full border border-gray-300 rounded-md p-2 disabled:bg-gray-100"
-                  value={profile.contactEmail}
-                  onChange={handleChange}
-                />
-              </div>
-
-              <div>
-                <label className="block text-sm font-medium text-gray-700">Phone</label>
-                <input
-                  type="tel"
-                  name="phone"
-                  disabled={!isEditing}
-                  className="mt-1 block w-full border border-gray-300 rounded-md p-2 disabled:bg-gray-100"
-                  value={profile.phone}
-                  onChange={handleChange}
-                />
-              </div>
-            </div>
-
-            <div className="mt-4">
-              <label className="block text-sm font-medium text-gray-700">Website</label>
-              <input
-                type="url"
-                name="website"
-                disabled={!isEditing}
-                className="mt-1 block w-full border border-gray-300 rounded-md p-2 disabled:bg-gray-100"
-                value={profile.website}
-                onChange={handleChange}
-              />
-            </div>
-
-            <div className="mt-4">
-              <label className="block text-sm font-medium text-gray-700">Address</label>
-              <textarea
-                name="address"
-                rows="3"
-                disabled={!isEditing}
-                className="mt-1 block w-full border border-gray-300 rounded-md p-2 disabled:bg-gray-100"
-                value={profile.address}
-                onChange={handleChange}
-              />
-            </div>
-          </div>
-
-          {/* Social Media */}
-          <div>
-            <h2 className="text-lg font-semibold mb-4">Social Media</h2>
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              <div>
-                <label className="block text-sm font-medium text-gray-700">LinkedIn</label>
-                <input
+              <Form.Group className="mb-3">
+                <Form.Label>Website</Form.Label>
+                <Form.Control
                   type="url"
-                  name="linkedin"
-                  disabled={!isEditing}
-                  className="mt-1 block w-full border border-gray-300 rounded-md p-2 disabled:bg-gray-100"
-                  value={profile.linkedin}
+                  name="website"
+                  value={profile.website}
                   onChange={handleChange}
-                  placeholder="https://linkedin.com/company/yourcompany"
+                  placeholder="https://yourcompany.com"
                 />
-              </div>
+              </Form.Group>
 
-              <div>
-                <label className="block text-sm font-medium text-gray-700">Twitter</label>
-                <input
+              <Form.Group className="mb-3">
+                <Form.Label>Description</Form.Label>
+                <Form.Control
+                  as="textarea"
+                  rows={3}
+                  name="description"
+                  value={profile.description}
+                  onChange={handleChange}
+                  placeholder="Describe your company, mission, and values..."
+                />
+              </Form.Group>
+            </div>
+
+            {/* Contact Information */}
+            <div className="mb-4">
+              <h5 className="text-primary mb-3">📞 Contact Information</h5>
+              <Row>
+                <Col md={6}>
+                  <Form.Group className="mb-3">
+                    <Form.Label>Contact Email *</Form.Label>
+                    <Form.Control
+                      type="email"
+                      name="contactEmail"
+                      value={profile.contactEmail}
+                      onChange={handleChange}
+                      required
+                    />
+                  </Form.Group>
+                </Col>
+                <Col md={6}>
+                  <Form.Group className="mb-3">
+                    <Form.Label>Phone</Form.Label>
+                    <Form.Control
+                      type="tel"
+                      name="phone"
+                      value={profile.phone}
+                      onChange={handleChange}
+                      placeholder="+1-555-0123"
+                    />
+                  </Form.Group>
+                </Col>
+              </Row>
+
+              <Form.Group className="mb-3">
+                <Form.Label>Address</Form.Label>
+                <Form.Control
+                  as="textarea"
+                  rows={2}
+                  name="address"
+                  value={profile.address}
+                  onChange={handleChange}
+                  placeholder="Company headquarters address..."
+                />
+              </Form.Group>
+            </div>
+
+            {/* Social Media */}
+            <div className="mb-4">
+              <h5 className="text-primary mb-3">🌐 Social Media</h5>
+              <Row>
+                <Col md={6}>
+                  <Form.Group className="mb-3">
+                    <Form.Label>LinkedIn</Form.Label>
+                    <Form.Control
+                      type="url"
+                      name="linkedin"
+                      value={profile.linkedin}
+                      onChange={handleChange}
+                      placeholder="https://linkedin.com/company/yourcompany"
+                    />
+                  </Form.Group>
+                </Col>
+                <Col md={6}>
+                  <Form.Group className="mb-3">
+                    <Form.Label>Twitter</Form.Label>
+                    <Form.Control
+                      type="url"
+                      name="twitter"
+                      value={profile.twitter}
+                      onChange={handleChange}
+                      placeholder="https://twitter.com/yourcompany"
+                    />
+                  </Form.Group>
+                </Col>
+              </Row>
+              <Form.Group className="mb-3">
+                <Form.Label>Facebook</Form.Label>
+                <Form.Control
                   type="url"
-                  name="twitter"
-                  disabled={!isEditing}
-                  className="mt-1 block w-full border border-gray-300 rounded-md p-2 disabled:bg-gray-100"
-                  value={profile.twitter}
+                  name="facebook"
+                  value={profile.facebook}
                   onChange={handleChange}
-                  placeholder="https://twitter.com/yourcompany"
+                  placeholder="https://facebook.com/yourcompany"
                 />
-              </div>
+              </Form.Group>
             </div>
 
-            <div className="mt-4">
-              <label className="block text-sm font-medium text-gray-700">Facebook</label>
-              <input
-                type="url"
-                name="facebook"
-                disabled={!isEditing}
-                className="mt-1 block w-full border border-gray-300 rounded-md p-2 disabled:bg-gray-100"
-                value={profile.facebook}
-                onChange={handleChange}
-                placeholder="https://facebook.com/yourcompany"
-              />
+            {/* Company Culture */}
+            <div className="mb-4">
+              <h5 className="text-primary mb-3">🏢 Company Culture & Benefits</h5>
+              <Form.Group className="mb-3">
+                <Form.Label>Benefits</Form.Label>
+                <Form.Control
+                  as="textarea"
+                  rows={2}
+                  name="benefits"
+                  value={profile.benefits}
+                  onChange={handleChange}
+                  placeholder="Health insurance, 401k matching, flexible work hours, professional development..."
+                />
+              </Form.Group>
+
+              <Form.Group className="mb-3">
+                <Form.Label>Company Culture</Form.Label>
+                <Form.Control
+                  as="textarea"
+                  rows={3}
+                  name="culture"
+                  value={profile.culture}
+                  onChange={handleChange}
+                  placeholder="Describe your company culture, values, and work environment..."
+                />
+              </Form.Group>
             </div>
-          </div>
 
-          {/* Company Description */}
-          <div>
-            <h2 className="text-lg font-semibold mb-4">Company Description</h2>
-            <textarea
-              name="description"
-              rows="4"
-              disabled={!isEditing}
-              className="w-full border border-gray-300 rounded-md p-2 disabled:bg-gray-100"
-              value={profile.description}
-              onChange={handleChange}
-              placeholder="Describe your company culture, mission, and values..."
-            />
-          </div>
-
-          {/* Company Benefits */}
-          <div>
-            <h2 className="text-lg font-semibold mb-4">Employee Benefits</h2>
-            <textarea
-              name="benefits"
-              rows="3"
-              disabled={!isEditing}
-              className="w-full border border-gray-300 rounded-md p-2 disabled:bg-gray-100"
-              value={profile.benefits}
-              onChange={handleChange}
-              placeholder="List the benefits offered to employees..."
-            />
-          </div>
-
-          {/* Company Culture */}
-          <div>
-            <h2 className="text-lg font-semibold mb-4">Company Culture</h2>
-            <textarea
-              name="culture"
-              rows="3"
-              disabled={!isEditing}
-              className="w-full border border-gray-300 rounded-md p-2 disabled:bg-gray-100"
-              value={profile.culture}
-              onChange={handleChange}
-              placeholder="Describe your company culture and work environment..."
-            />
-          </div>
-
-          {isEditing && (
-            <div className="flex justify-end space-x-3 pt-4 border-t">
-              <button
-                type="button"
-                onClick={() => setIsEditing(false)}
-                className="bg-gray-500 text-white px-6 py-2 rounded-md hover:bg-gray-600"
-              >
-                Cancel
-              </button>
-              <button
+            <div className="text-center">
+              <Button
                 type="submit"
+                variant="primary"
+                size="lg"
                 disabled={loading}
-                className="bg-green-600 text-white px-6 py-2 rounded-md hover:bg-green-700 disabled:opacity-50"
+                className="px-5"
               >
-                {loading ? 'Saving...' : 'Save Changes'}
-              </button>
+                {loading ? "🔄 Updating Profile..." : "💾 Save Changes"}
+              </Button>
             </div>
-          )}
-        </div>
-      </form>
+          </Form>
+        </Card.Body>
+      </Card>
     </div>
   );
-};
-
-export default CompanyProfile;
+}

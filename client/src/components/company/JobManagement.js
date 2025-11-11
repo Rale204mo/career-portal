@@ -1,208 +1,321 @@
 import React, { useState, useEffect } from 'react';
+import { Card, Button, Table, Badge, Alert, Modal, Form, Row, Col, Spinner } from 'react-bootstrap';
+import { Link } from 'react-router-dom';
 
 const JobManagement = () => {
   const [jobs, setJobs] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [showEditModal, setShowEditModal] = useState(false);
   const [selectedJob, setSelectedJob] = useState(null);
+  const [status, setStatus] = useState('');
+  const [error, setError] = useState('');
 
   useEffect(() => {
     fetchJobs();
   }, []);
 
   const fetchJobs = async () => {
-    // Mock data - replace with API call
-    setJobs([
-      {
-        id: 1,
-        title: 'Senior Developer',
-        department: 'Engineering',
-        location: 'Remote',
-        jobType: 'full-time',
-        applicants: 15,
-        status: 'active',
-        postedDate: '2024-01-10',
-        deadline: '2024-02-10'
-      },
-      {
-        id: 2,
-        title: 'Data Analyst',
-        department: 'Analytics',
-        location: 'New York, NY',
-        jobType: 'full-time',
-        applicants: 8,
-        status: 'active',
-        postedDate: '2024-01-12',
-        deadline: '2024-02-12'
+    try {
+      const token = localStorage.getItem('token');
+      const response = await fetch('http://localhost:5000/api/company/jobs', {
+        headers: {
+          'Authorization': `Bearer ${token}`,
+          'Content-Type': 'application/json'
+        }
+      });
+
+      if (!response.ok) {
+        throw new Error('Failed to fetch jobs');
       }
-    ]);
-  };
 
-  const updateJobStatus = async (jobId, status) => {
-    // API call to update job status
-    console.log(`Updating job ${jobId} to ${status}`);
-  };
-
-  const deleteJob = async (jobId) => {
-    if (window.confirm('Are you sure you want to delete this job posting?')) {
-      // API call to delete job
-      console.log('Deleting job:', jobId);
+      const data = await response.json();
+      setJobs(data.data || []);
+    } catch (err) {
+      console.error('Error fetching jobs:', err);
+      setError('Failed to load jobs');
+    } finally {
+      setLoading(false);
     }
   };
 
-  const getStatusColor = (status) => {
-    const colors = {
-      'active': 'bg-green-100 text-green-800',
-      'paused': 'bg-yellow-100 text-yellow-800',
-      'closed': 'bg-red-100 text-red-800',
-      'draft': 'bg-gray-100 text-gray-800'
-    };
-    return colors[status] || 'bg-gray-100 text-gray-800';
+  const handleEdit = (job) => {
+    setSelectedJob(job);
+    setShowEditModal(true);
   };
 
+  const handleDelete = async (jobId) => {
+    if (window.confirm('Are you sure you want to delete this job? This action cannot be undone.')) {
+      try {
+        const token = localStorage.getItem('token');
+        const response = await fetch(`http://localhost:5000/api/company/jobs/${jobId}`, {
+          method: 'DELETE',
+          headers: {
+            'Authorization': `Bearer ${token}`,
+            'Content-Type': 'application/json'
+          }
+        });
+
+        if (!response.ok) {
+          throw new Error('Failed to delete job');
+        }
+
+        setJobs(jobs.filter(job => job.id !== jobId));
+        setStatus('✅ Job deleted successfully');
+        setTimeout(() => setStatus(''), 3000);
+      } catch (err) {
+        console.error('Error deleting job:', err);
+        setError('Failed to delete job');
+        setTimeout(() => setError(''), 3000);
+      }
+    }
+  };
+
+  const handleUpdate = async () => {
+    try {
+      const token = localStorage.getItem('token');
+      const response = await fetch(`http://localhost:5000/api/company/jobs/${selectedJob.id}`, {
+        method: 'PUT',
+        headers: {
+          'Authorization': `Bearer ${token}`,
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify(selectedJob)
+      });
+
+      if (!response.ok) {
+        throw new Error('Failed to update job');
+      }
+
+      setJobs(jobs.map(job =>
+        job.id === selectedJob.id ? selectedJob : job
+      ));
+      setShowEditModal(false);
+      setStatus('✅ Job updated successfully');
+      setTimeout(() => setStatus(''), 3000);
+    } catch (err) {
+      console.error('Error updating job:', err);
+      setError('Failed to update job');
+      setTimeout(() => setError(''), 3000);
+    }
+  };
+
+  const getStatusBadge = (status) => {
+    switch (status) {
+      case 'active': return <Badge bg="success">🟢 Active</Badge>;
+      case 'closed': return <Badge bg="secondary">🔴 Closed</Badge>;
+      case 'draft': return <Badge bg="warning">📝 Draft</Badge>;
+      default: return <Badge bg="secondary">{status}</Badge>;
+    }
+  };
+
+  if (loading) {
+    return (
+      <div className="container py-4 text-center">
+        <Spinner animation="border" variant="primary" />
+        <p className="mt-2 text-muted">Loading jobs...</p>
+      </div>
+    );
+  }
+
   return (
-    <div className="p-6">
-      <div className="mb-6">
-        <h1 className="text-2xl font-bold">Job Management</h1>
-        <p className="text-gray-600">Manage your job postings and applications</p>
-      </div>
-
-      {/* Jobs List */}
-      <div className="bg-white shadow rounded-lg overflow-hidden">
-        <table className="min-w-full divide-y divide-gray-200">
-          <thead className="bg-gray-50">
-            <tr>
-              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                Job Title
-              </th>
-              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                Department
-              </th>
-              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                Applicants
-              </th>
-              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                Status
-              </th>
-              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                Deadline
-              </th>
-              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                Actions
-              </th>
-            </tr>
-          </thead>
-          <tbody className="bg-white divide-y divide-gray-200">
-            {jobs.map((job) => (
-              <tr key={job.id} className="hover:bg-gray-50">
-                <td className="px-6 py-4 whitespace-nowrap">
-                  <div>
-                    <div className="text-sm font-medium text-gray-900">{job.title}</div>
-                    <div className="text-sm text-gray-500">{job.location} • {job.jobType}</div>
-                  </div>
-                </td>
-                <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
-                  {job.department}
-                </td>
-                <td className="px-6 py-4 whitespace-nowrap">
-                  <span className="text-sm font-medium text-gray-900">{job.applicants}</span>
-                  <span className="text-sm text-gray-500 ml-1">applicants</span>
-                </td>
-                <td className="px-6 py-4 whitespace-nowrap">
-                  <span className={`inline-flex px-2 py-1 text-xs font-semibold rounded-full ${getStatusColor(job.status)}`}>
-                    {job.status.toUpperCase()}
-                  </span>
-                </td>
-                <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
-                  {new Date(job.deadline).toLocaleDateString()}
-                </td>
-                <td className="px-6 py-4 whitespace-nowrap text-sm font-medium space-x-2">
-                  <button 
-                    onClick={() => setSelectedJob(job)}
-                    className="text-blue-600 hover:text-blue-900"
-                  >
-                    View
-                  </button>
-                  <button 
-                    onClick={() => updateJobStatus(job.id, job.status === 'active' ? 'paused' : 'active')}
-                    className="text-yellow-600 hover:text-yellow-900"
-                  >
-                    {job.status === 'active' ? 'Pause' : 'Activate'}
-                  </button>
-                  <button 
-                    onClick={() => deleteJob(job.id)}
-                    className="text-red-600 hover:text-red-900"
-                  >
-                    Delete
-                  </button>
-                </td>
-              </tr>
-            ))}
-          </tbody>
-        </table>
-
-        {jobs.length === 0 && (
-          <div className="text-center py-12">
-            <p className="text-gray-500">No job postings found.</p>
-          </div>
-        )}
-      </div>
-
-      {/* Job Details Modal */}
-      {selectedJob && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
-          <div className="bg-white rounded-lg max-w-2xl w-full max-h-[90vh] overflow-y-auto">
-            <div className="p-6">
-              <div className="flex justify-between items-start mb-4">
-                <h2 className="text-xl font-bold">{selectedJob.title}</h2>
-                <button 
-                  onClick={() => setSelectedJob(null)}
-                  className="text-gray-500 hover:text-gray-700"
-                >
-                  ✕
-                </button>
-              </div>
-              
-              <div className="space-y-4">
-                <div className="grid grid-cols-2 gap-4">
-                  <div>
-                    <strong>Department:</strong> {selectedJob.department}
-                  </div>
-                  <div>
-                    <strong>Location:</strong> {selectedJob.location}
-                  </div>
-                  <div>
-                    <strong>Job Type:</strong> {selectedJob.jobType}
-                  </div>
-                  <div>
-                    <strong>Status:</strong> 
-                    <span className={`ml-2 px-2 py-1 text-xs rounded-full ${getStatusColor(selectedJob.status)}`}>
-                      {selectedJob.status}
-                    </span>
-                  </div>
-                </div>
-                
-                <div>
-                  <strong>Posted Date:</strong> {new Date(selectedJob.postedDate).toLocaleDateString()}
-                </div>
-                <div>
-                  <strong>Application Deadline:</strong> {new Date(selectedJob.deadline).toLocaleDateString()}
-                </div>
-                <div>
-                  <strong>Total Applicants:</strong> {selectedJob.applicants}
-                </div>
-              </div>
-              
-              <div className="flex justify-end space-x-3 mt-6">
-                <button className="bg-blue-600 text-white px-4 py-2 rounded-md hover:bg-blue-700">
-                  View Applicants
-                </button>
-                <button className="bg-gray-500 text-white px-4 py-2 rounded-md hover:bg-gray-600">
-                  Edit Job
-                </button>
-              </div>
-            </div>
-          </div>
+    <div className="container py-4">
+      <Button variant="outline-secondary" className="mb-3" onClick={() => window.history.back()}>
+        ← Back
+      </Button>
+      <div className="d-flex justify-content-between align-items-center mb-4">
+        <div>
+          <h2 className="fw-bold text-dark mb-1">⚙️ Job Management</h2>
+          <p className="text-muted mb-0">Manage your job postings and track applications</p>
         </div>
-      )}
+        <Link to="/company/jobs/post">
+          <Button variant="primary" size="lg">
+            📝 Post New Job
+          </Button>
+        </Link>
+      </div>
+
+      {status && <Alert variant="success">{status}</Alert>}
+      {error && <Alert variant="danger">{error}</Alert>}
+
+      <Card className="shadow-sm">
+        <Card.Header className="bg-light">
+          <h5 className="mb-0 fw-bold">Your Job Postings</h5>
+        </Card.Header>
+        <Card.Body className="p-0">
+          {jobs.length === 0 ? (
+            <div className="text-center py-5">
+              <h5 className="text-muted">No jobs posted yet</h5>
+              <p className="text-muted mb-3">Create your first job posting to start attracting talent</p>
+              <Link to="/company/jobs/post">
+                <Button variant="primary">Post Your First Job</Button>
+              </Link>
+            </div>
+          ) : (
+            <Table responsive hover className="mb-0">
+              <thead className="table-light">
+                <tr>
+                  <th className="border-0 fw-bold">Job Title</th>
+                  <th className="border-0 fw-bold">Category</th>
+                  <th className="border-0 fw-bold">Location</th>
+                  <th className="border-0 fw-bold">Status</th>
+                  <th className="border-0 fw-bold">Applicants</th>
+                  <th className="border-0 fw-bold">Posted Date</th>
+                  <th className="border-0 fw-bold">Actions</th>
+                </tr>
+              </thead>
+              <tbody>
+                {jobs.map(job => (
+                  <tr key={job.id}>
+                    <td className="fw-semibold">{job.title}</td>
+                    <td>
+                      <Badge bg="outline-primary" className="text-capitalize">
+                        {job.category || 'Not specified'}
+                      </Badge>
+                    </td>
+                    <td>{job.location || 'Not specified'}</td>
+                    <td>{getStatusBadge(job.status || 'active')}</td>
+                    <td>
+                      <span className="fw-bold text-primary">{job.applicants || 0}</span>
+                    </td>
+                    <td>{job.postedDate || job.createdAt || 'N/A'}</td>
+                    <td>
+                      <div className="btn-group" role="group">
+                        <Link to={`/company/applicants?job=${job.id}`}>
+                          <Button
+                            variant="outline-success"
+                            size="sm"
+                            className="me-1"
+                          >
+                            👥 View ({job.applicants || 0})
+                          </Button>
+                        </Link>
+                        <Button
+                          variant="outline-primary"
+                          size="sm"
+                          className="me-1"
+                          onClick={() => handleEdit(job)}
+                        >
+                          ✏️ Edit
+                        </Button>
+                        <Button
+                          variant="outline-danger"
+                          size="sm"
+                          onClick={() => handleDelete(job.id)}
+                        >
+                          🗑️ Delete
+                        </Button>
+                      </div>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </Table>
+          )}
+        </Card.Body>
+      </Card>
+
+      {/* Edit Job Modal */}
+      <Modal show={showEditModal} onHide={() => setShowEditModal(false)} size="lg">
+        <Modal.Header closeButton className="bg-primary text-white">
+          <Modal.Title>✏️ Edit Job Posting</Modal.Title>
+        </Modal.Header>
+        <Modal.Body>
+          {selectedJob && (
+            <Form>
+              <Row>
+                <Col md={6}>
+                  <Form.Group className="mb-3">
+                    <Form.Label>Job Title *</Form.Label>
+                    <Form.Control
+                      type="text"
+                      value={selectedJob.title}
+                      onChange={(e) => setSelectedJob({...selectedJob, title: e.target.value})}
+                      required
+                    />
+                  </Form.Group>
+                </Col>
+                <Col md={6}>
+                  <Form.Group className="mb-3">
+                    <Form.Label>Category</Form.Label>
+                    <Form.Select
+                      value={selectedJob.category}
+                      onChange={(e) => setSelectedJob({...selectedJob, category: e.target.value})}
+                    >
+                      <option value="technology">Technology</option>
+                      <option value="business">Business</option>
+                      <option value="healthcare">Healthcare</option>
+                      <option value="education">Education</option>
+                      <option value="creative">Creative</option>
+                      <option value="sales">Sales</option>
+                      <option value="marketing">Marketing</option>
+                      <option value="engineering">Engineering</option>
+                      <option value="design">Design</option>
+                      <option value="other">Other</option>
+                    </Form.Select>
+                  </Form.Group>
+                </Col>
+              </Row>
+
+              <Row>
+                <Col md={6}>
+                  <Form.Group className="mb-3">
+                    <Form.Label>Location</Form.Label>
+                    <Form.Control
+                      type="text"
+                      value={selectedJob.location}
+                      onChange={(e) => setSelectedJob({...selectedJob, location: e.target.value})}
+                      placeholder="City, Country or 'Remote'"
+                    />
+                  </Form.Group>
+                </Col>
+                <Col md={6}>
+                  <Form.Group className="mb-3">
+                    <Form.Label>Status</Form.Label>
+                    <Form.Select
+                      value={selectedJob.status}
+                      onChange={(e) => setSelectedJob({...selectedJob, status: e.target.value})}
+                    >
+                      <option value="active">🟢 Active</option>
+                      <option value="closed">🔴 Closed</option>
+                      <option value="draft">📝 Draft</option>
+                    </Form.Select>
+                  </Form.Group>
+                </Col>
+              </Row>
+
+              <Form.Group className="mb-3">
+                <Form.Label>Description</Form.Label>
+                <Form.Control
+                  as="textarea"
+                  rows={3}
+                  value={selectedJob.description}
+                  onChange={(e) => setSelectedJob({...selectedJob, description: e.target.value})}
+                  placeholder="Update job description..."
+                />
+              </Form.Group>
+
+              <Form.Group className="mb-3">
+                <Form.Label>Requirements</Form.Label>
+                <Form.Control
+                  as="textarea"
+                  rows={3}
+                  value={selectedJob.requirements}
+                  onChange={(e) => setSelectedJob({...selectedJob, requirements: e.target.value})}
+                  placeholder="Update job requirements..."
+                />
+              </Form.Group>
+            </Form>
+          )}
+        </Modal.Body>
+        <Modal.Footer>
+          <Button variant="secondary" onClick={() => setShowEditModal(false)}>
+            Cancel
+          </Button>
+          <Button variant="primary" onClick={handleUpdate}>
+            💾 Update Job
+          </Button>
+        </Modal.Footer>
+      </Modal>
     </div>
   );
 };

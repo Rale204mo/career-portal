@@ -26,6 +26,8 @@ import Universities from './components/student/Universities';
 // Admin Components
 import AdminDashboard from './components/admin/AdminDashboard';
 import AdminInstitutions from './components/admin/AdminInstitutions';
+import AdminFaculties from './components/admin/AdminFaculties';
+import AdminCourses from './components/admin/AdminCourses';
 import AdminUsers from './components/admin/AdminUsers';
 import AdminCompanies from './components/admin/AdminCompanies';
 import AdminReports from './components/admin/AdminReports';
@@ -69,13 +71,15 @@ function App() {
             <Route path="/company-dashboard" element={<CompanyDashboard />} />
             <Route path="/company/applicants" element={<ApplicantView />} />
             <Route path="/company/profile" element={<CompanyProfile />} />
-            <Route path="company/jobs" element={<JobManagement />} />
-            <Route path="company/post-job" element={<JobPosting />} />
+            <Route path="/company/jobs" element={<JobManagement />} />
+            <Route path="/company/jobs/post" element={<JobPosting />} />
 
             {/* Admin Routes */}
             <Route path="/admin" element={<AdminDashboard />} />
             <Route path="/admin/login" element={<AdminLogin />} />
             <Route path="/admin/institutions" element={<AdminInstitutions />} />
+            <Route path="/admin/faculties" element={<AdminFaculties />} />
+            <Route path="/admin/courses" element={<AdminCourses />} />
             <Route path="/admin/users" element={<AdminUsers />} />
             <Route path="/admin/companies" element={<AdminCompanies />} />
             <Route path="/admin/admissions" element={<AdminAdmissions />} />

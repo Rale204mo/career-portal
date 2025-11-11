@@ -154,11 +154,17 @@ app.put('/faculties/:id', authenticateFirebaseToken, requireRole(['admin', 'inst
 app.delete('/faculties/:id', authenticateFirebaseToken, requireRole(['admin', 'institution']), instController.deleteFaculty);
 
 // Company Routes
-app.get('/jobs', compController.getJobs);
-app.post('/jobs', authenticateFirebaseToken, requireRole(['company', 'admin']), compController.createJob);
-app.get('/jobs/:id', compController.getJobById);
-app.put('/jobs/:id', authenticateFirebaseToken, requireRole(['company', 'admin']), compController.updateJob);
-app.delete('/jobs/:id', authenticateFirebaseToken, requireRole(['company', 'admin']), compController.deleteJob);
+app.get('/api/company/jobs', authenticateFirebaseToken, requireRole(['company', 'admin']), compController.getJobs);
+app.post('/api/company/jobs', authenticateFirebaseToken, requireRole(['company', 'admin']), compController.createJob);
+app.get('/api/company/jobs/:id', authenticateFirebaseToken, requireRole(['company', 'admin']), compController.getJobById);
+app.put('/api/company/jobs/:id', authenticateFirebaseToken, requireRole(['company', 'admin']), compController.updateJob);
+app.delete('/api/company/jobs/:id', authenticateFirebaseToken, requireRole(['company', 'admin']), compController.deleteJob);
+app.get('/api/company/applicants/:jobId', authenticateFirebaseToken, requireRole(['company', 'admin']), compController.getJobApplicants);
+app.get('/api/company/applicant/:applicantId', authenticateFirebaseToken, requireRole(['company', 'admin']), compController.getApplicantDetails);
+app.post('/api/company/interview', authenticateFirebaseToken, requireRole(['company', 'admin']), compController.scheduleInterview);
+app.get('/api/company/stats', authenticateFirebaseToken, requireRole(['company', 'admin']), compController.getCompanyStats);
+app.get('/api/company/profile', authenticateFirebaseToken, requireRole(['company', 'admin']), compController.getCompanyProfile);
+app.put('/api/company/profile', authenticateFirebaseToken, requireRole(['company', 'admin']), compController.updateCompanyProfile);
 app.get('/companies', compController.getCompanies);
 app.post('/companies', authenticateFirebaseToken, requireRole(['admin']), compController.createCompany);
 
@@ -229,7 +235,7 @@ app.use((error, req, res, next) => {
   });
 });
 
-const PORT = process.env.PORT || 5001;
+const PORT = process.env.PORT || 5000;
 
 app.listen(PORT, () => {
   console.log(`🚀 Server is running on port ${PORT}`);

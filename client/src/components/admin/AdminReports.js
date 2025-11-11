@@ -2,8 +2,12 @@
 import React, { useState, useEffect } from 'react';
 import { Container, Card, Row, Col, Table, Button, Alert } from 'react-bootstrap';
 import { Link } from 'react-router-dom';
+import { CSVLink } from 'react-csv';
+import jsPDF from 'jspdf';
+import autoTable from 'jspdf-autotable';
 import { realApi } from '../../api/config';
 import { useAuth } from '../contexts/AuthContext';
+import AnalyticsModal from './AnalyticsModal';
 
 const AdminReports = () => {
   const { logout } = useAuth();
@@ -11,6 +15,7 @@ const AdminReports = () => {
   const [institutions, setInstitutions] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
+  const [showAnalytics, setShowAnalytics] = useState(false);
 
   useEffect(() => {
     fetchData();
@@ -47,15 +52,66 @@ const AdminReports = () => {
 
   const getInstitutionStats = () => {
     return institutions.map(institution => {
-      const institutionApps = applications.filter(app => app.institutionId === institution);
+      const institutionApps = applications.filter(app => app.institutionId === institution.id);
       return {
-        name: institution,
+        name: institution.name,
         total: institutionApps.length,
         pending: institutionApps.filter(app => app.status === 'pending').length,
         approved: institutionApps.filter(app => app.status === 'approved').length,
         rejected: institutionApps.filter(app => app.status === 'rejected').length
       };
     });
+  };
+
+  const exportCSV = () => {
+    const csvData = applications.map(app => ({
+      'Student ID': app.studentId || '',
+      'Institution': app.institutionId || '',
+      'Status': app.status || '',
+      'Applied Date': app.appliedDate || '',
+      'Updated Date': app.updatedDate || ''
+    }));
+    return csvData;
+  };
+
+  const generatePDF = () => {
+    const doc = new jsPDF();
+    doc.setFontSize(20);
+    doc.text('System Reports', 20, 20);
+
+    doc.setFontSize(16);
+    doc.text('Application Statistics', 20, 40);
+    doc.setFontSize(12);
+    doc.text(`Total Applications: ${appStats.total}`, 20, 50);
+    doc.text(`Pending: ${appStats.pending}`, 20, 60);
+    doc.text(`Approved: ${appStats.approved}`, 20, 70);
+    doc.text(`Rejected: ${appStats.rejected}`, 20, 80);
+
+    doc.setFontSize(16);
+    doc.text('Institution Performance', 20, 100);
+    const tableData = institutionStats.map(stats => [
+      stats.name,
+      stats.total,
+      stats.pending,
+      stats.approved,
+      stats.rejected,
+      stats.total > 0 ? ((stats.approved / stats.total) * 100).toFixed(1) + '%' : '0%'
+    ]);
+    autoTable(doc, {
+      head: [['Institution', 'Total', 'Pending', 'Approved', 'Rejected', 'Approval Rate']],
+      body: tableData,
+      startY: 110
+    });
+
+    doc.save('system-report.pdf');
+  };
+
+  const handleShowAnalytics = () => {
+    setShowAnalytics(true);
+  };
+
+  const handleCloseAnalytics = () => {
+    setShowAnalytics(false);
   };
 
   if (loading) {
@@ -198,13 +254,18 @@ const AdminReports = () => {
             </Card.Header>
             <Card.Body>
               <div className="d-grid gap-2">
-                <Button variant="outline-primary">
+                <CSVLink
+                  data={exportCSV()}
+                  filename="applications-report.csv"
+                  className="btn btn-outline-primary"
+                  target="_blank"
+                >
                   Export Applications CSV
-                </Button>
-                <Button variant="outline-success">
+                </CSVLink>
+                <Button variant="outline-success" onClick={generatePDF}>
                   Generate Full Report
                 </Button>
-                <Button variant="outline-warning">
+                <Button variant="outline-warning" onClick={handleShowAnalytics}>
                   System Analytics
                 </Button>
               </div>
@@ -212,6 +273,13 @@ const AdminReports = () => {
           </Card>
         </Col>
       </Row>
+
+      <AnalyticsModal
+        show={showAnalytics}
+        onHide={handleCloseAnalytics}
+        applications={applications}
+        institutions={institutions}
+      />
     </Container>
   );
 };

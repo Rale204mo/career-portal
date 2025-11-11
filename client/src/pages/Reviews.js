@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import axios from 'axios';
 
-const API_BASE_URL = 'http://localhost:5001';
+const API_BASE_URL = 'http://localhost:5000';
 
 export default function Reviews() {
   const [reviews, setReviews] = useState([]);

@@ -361,8 +361,8 @@ const AdminDashboard = () => {
                         Add and manage higher learning institutions, faculties, and courses
                       </Card.Text>
                       <div className="d-grid gap-2">
-                        <Button 
-                          variant="primary" 
+                        <Button
+                          variant="primary"
                           onClick={() => setShowAddInstitution(true)}
                         >
                           Add New Institution
@@ -370,8 +370,11 @@ const AdminDashboard = () => {
                         <Button as={Link} to="/admin/institutions" variant="outline-primary">
                           Manage Institutions
                         </Button>
-                        <Button as={Link} to="/admin/institutions" variant="outline-secondary">
-                          View All Institutions
+                        <Button as={Link} to="/admin/faculties" variant="outline-secondary">
+                          Manage Faculties
+                        </Button>
+                        <Button as={Link} to="/admin/courses" variant="outline-info">
+                          Manage Courses
                         </Button>
                       </div>
                     </Card.Body>
