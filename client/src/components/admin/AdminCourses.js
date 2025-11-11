@@ -1,7 +1,6 @@
-// src/components/admin/AdminCourses.js
 import React, { useState, useEffect } from 'react';
 import { Container, Card, Table, Button, Badge, Alert, Modal, Form, Row, Col } from 'react-bootstrap';
-import { Link } from 'react-router-dom';
+import { Link, useSearchParams } from 'react-router-dom';
 import { collection, getDocs, query, where, addDoc, updateDoc, deleteDoc, doc } from 'firebase/firestore';
 import { auth, db } from '../../firebase';
 import { realApi } from '../../api/config';
@@ -9,6 +8,9 @@ import { useAuth } from '../contexts/AuthContext';
 
 const AdminCourses = () => {
   const { logout } = useAuth();
+  const [searchParams] = useSearchParams();
+  const institutionId = searchParams.get('institution');
+
   const [courses, setCourses] = useState([]);
   const [faculties, setFaculties] = useState([]);
   const [institutions, setInstitutions] = useState([]);
@@ -17,25 +19,41 @@ const AdminCourses = () => {
   const [showModal, setShowModal] = useState(false);
   const [selectedCourse, setSelectedCourse] = useState(null);
   const [showAddModal, setShowAddModal] = useState(false);
+  const [showEditModal, setShowEditModal] = useState(false);
+  const [editingCourse, setEditingCourse] = useState(null);
   const [newCourse, setNewCourse] = useState({
     name: '',
     code: '',
     description: '',
     facultyId: '',
+    institutionId: institutionId || '',
     duration: '',
-    requirements: ''
+    credits: '',
+    level: 'undergraduate',
+    status: 'active'
+  });
+  const [editCourse, setEditCourse] = useState({
+    name: '',
+    code: '',
+    description: '',
+    facultyId: '',
+    institutionId: institutionId || '',
+    duration: '',
+    credits: '',
+    level: 'undergraduate',
+    status: 'active'
   });
 
   useEffect(() => {
     fetchData();
-  }, []);
+  }, [institutionId]);
 
   const fetchData = async () => {
     try {
       setLoading(true);
       setError('');
 
-      // Fetch institutions first
+      // Fetch institutions
       const institutionsQuery = query(collection(db, 'institutions'));
       const institutionsSnapshot = await getDocs(institutionsQuery);
       const institutionsData = institutionsSnapshot.docs.map(doc => ({
@@ -45,41 +63,41 @@ const AdminCourses = () => {
       setInstitutions(institutionsData);
 
       // Fetch faculties
-      const facultiesQuery = query(collection(db, 'faculties'));
+      let facultiesQuery;
+      if (institutionId) {
+        facultiesQuery = query(collection(db, 'faculties'), where('institutionId', '==', institutionId));
+      } else {
+        facultiesQuery = query(collection(db, 'faculties'));
+      }
       const facultiesSnapshot = await getDocs(facultiesQuery);
       const facultiesData = facultiesSnapshot.docs.map(doc => ({
         id: doc.id,
         ...doc.data()
       }));
+      setFaculties(facultiesData);
 
-      // Enrich faculties with institution names
-      const enrichedFaculties = facultiesData.map(faculty => ({
-        ...faculty,
-        institutionName: institutionsData.find(inst => inst.id === faculty.institutionId)?.name || 'Unknown Institution'
-      }));
-      setFaculties(enrichedFaculties);
+      // Fetch courses
+      let coursesQuery;
+      if (institutionId) {
+        coursesQuery = query(collection(db, 'courses'), where('institutionId', '==', institutionId));
+      } else {
+        coursesQuery = query(collection(db, 'courses'));
+      }
 
-      // Fetch courses from Firestore
-      const coursesQuery = query(collection(db, 'courses'));
       const coursesSnapshot = await getDocs(coursesQuery);
       const coursesData = coursesSnapshot.docs.map(doc => ({
         id: doc.id,
         ...doc.data()
       }));
 
-      // Enrich courses with faculty and institution names
-      const enrichedCourses = coursesData.map(course => {
-        const faculty = enrichedFaculties.find(f => f.id === course.facultyId);
-        return {
-          ...course,
-          facultyName: faculty?.name || 'Unknown Faculty',
-          institutionName: faculty?.institutionName || 'Unknown Institution'
-        };
-      });
+      // Add faculty and institution names to courses
+      const coursesWithDetails = coursesData.map(course => ({
+        ...course,
+        facultyName: facultiesData.find(fac => fac.id === course.facultyId)?.name || 'Unknown',
+        institutionName: institutionsData.find(inst => inst.id === course.institutionId)?.name || 'Unknown'
+      }));
 
-      setCourses(enrichedCourses);
-      console.log('Loaded courses from Firestore:', enrichedCourses.length);
-
+      setCourses(coursesWithDetails);
     } catch (err) {
       console.error('Error fetching data:', err);
       setError('Failed to load data: ' + err.message);
@@ -93,7 +111,6 @@ const AdminCourses = () => {
     try {
       setLoading(true);
 
-      // Add to Firestore
       const docRef = await addDoc(collection(db, 'courses'), {
         ...newCourse,
         createdAt: new Date(),
@@ -102,18 +119,18 @@ const AdminCourses = () => {
 
       console.log('Course added with ID:', docRef.id);
 
-      // Reset form and close modal
       setNewCourse({
         name: '',
         code: '',
         description: '',
         facultyId: '',
+        institutionId: institutionId || '',
         duration: '',
-        requirements: ''
+        credits: '',
+        level: 'undergraduate',
+        status: 'active'
       });
       setShowAddModal(false);
-
-      // Refresh data
       fetchData();
 
       alert('Course added successfully!');
@@ -181,7 +198,7 @@ const AdminCourses = () => {
           <Button as={Link} to="/admin" variant="outline-secondary">
             ← Back to Dashboard
           </Button>
-          <h1>Course Management</h1>
+          <h1>Course Management {institutionId && `- ${institutions.find(i => i.id === institutionId)?.name || 'Institution'}`}</h1>
         </div>
         <div className="d-flex gap-2">
           <Button variant="outline-danger" onClick={() => logout()}>
@@ -218,7 +235,9 @@ const AdminCourses = () => {
                   <th>Code</th>
                   <th>Faculty</th>
                   <th>Institution</th>
-                  <th>Duration</th>
+                  <th>Level</th>
+                  <th>Credits</th>
+                  <th>Status</th>
                   <th>Actions</th>
                 </tr>
               </thead>
@@ -228,14 +247,21 @@ const AdminCourses = () => {
                     <td>
                       <div>
                         <strong>{course.name}</strong>
+                        <div className="text-muted small">{course.description}</div>
                       </div>
                     </td>
-                    <td>
-                      <Badge bg="info">{course.code || 'N/A'}</Badge>
-                    </td>
+                    <td>{course.code}</td>
                     <td>{course.facultyName}</td>
                     <td>{course.institutionName}</td>
-                    <td>{course.duration || 'N/A'}</td>
+                    <td>
+                      <Badge bg="info">{course.level || 'undergraduate'}</Badge>
+                    </td>
+                    <td>{course.credits}</td>
+                    <td>
+                      <Badge bg={course.status === 'active' ? 'success' : 'secondary'}>
+                        {course.status || 'active'}
+                      </Badge>
+                    </td>
                     <td>
                       <div className="d-flex gap-1">
                         <Button
@@ -246,16 +272,32 @@ const AdminCourses = () => {
                           View
                         </Button>
                         <Button
-                          variant="outline-warning"
+                          variant="outline-secondary"
                           size="sm"
                           onClick={() => {
-                            const newName = prompt('Enter new course name:', course.name);
-                            if (newName && newName !== course.name) {
-                              handleUpdateCourse(course.id, { name: newName });
-                            }
+                            setEditingCourse(course);
+                            setEditCourse({
+                              name: course.name,
+                              code: course.code,
+                              description: course.description,
+                              facultyId: course.facultyId,
+                              institutionId: course.institutionId,
+                              duration: course.duration,
+                              credits: course.credits,
+                              level: course.level || 'undergraduate',
+                              status: course.status || 'active'
+                            });
+                            setShowEditModal(true);
                           }}
                         >
                           Edit
+                        </Button>
+                        <Button
+                          variant="outline-warning"
+                          size="sm"
+                          onClick={() => handleUpdateCourse(course.id, { status: course.status === 'active' ? 'inactive' : 'active' })}
+                        >
+                          {course.status === 'active' ? 'Deactivate' : 'Activate'}
                         </Button>
                         <Button
                           variant="outline-danger"
@@ -300,22 +342,23 @@ const AdminCourses = () => {
               </Row>
               <Row className="mb-3">
                 <Col md={6}>
+                  <strong>Level:</strong> {selectedCourse.level}
+                </Col>
+                <Col md={6}>
+                  <strong>Credits:</strong> {selectedCourse.credits}
+                </Col>
+              </Row>
+              <Row className="mb-3">
+                <Col md={6}>
                   <strong>Duration:</strong> {selectedCourse.duration}
                 </Col>
                 <Col md={6}>
-                  <strong>Created:</strong> {selectedCourse.createdAt?.toDate?.()?.toLocaleDateString() || 'N/A'}
+                  <strong>Status:</strong> <Badge bg={selectedCourse.status === 'active' ? 'success' : 'secondary'}>{selectedCourse.status}</Badge>
                 </Col>
               </Row>
               <Row className="mb-3">
                 <Col md={12}>
-                  <strong>Description:</strong>
-                  <p className="mt-2">{selectedCourse.description || 'No description available'}</p>
-                </Col>
-              </Row>
-              <Row className="mb-3">
-                <Col md={12}>
-                  <strong>Requirements:</strong>
-                  <p className="mt-2">{selectedCourse.requirements || 'No requirements specified'}</p>
+                  <strong>Description:</strong> {selectedCourse.description || 'No description'}
                 </Col>
               </Row>
             </div>
@@ -354,48 +397,9 @@ const AdminCourses = () => {
                   <Form.Control
                     type="text"
                     value={newCourse.code}
-                    onChange={(e) => setNewCourse({...newCourse, code: e.target.value.toUpperCase()})}
+                    onChange={(e) => setNewCourse({...newCourse, code: e.target.value})}
                     required
-                    placeholder="Short code (e.g., CS101)"
-                  />
-                </Form.Group>
-              </Col>
-            </Row>
-            <Form.Group className="mb-3">
-              <Form.Label>Faculty *</Form.Label>
-              <Form.Select
-                value={newCourse.facultyId}
-                onChange={(e) => setNewCourse({...newCourse, facultyId: e.target.value})}
-                required
-              >
-                <option value="">Select Faculty</option>
-                {faculties.map((faculty) => (
-                  <option key={faculty.id} value={faculty.id}>
-                    {faculty.name} ({faculty.institutionName})
-                  </option>
-                ))}
-              </Form.Select>
-            </Form.Group>
-            <Row>
-              <Col md={6}>
-                <Form.Group className="mb-3">
-                  <Form.Label>Duration</Form.Label>
-                  <Form.Control
-                    type="text"
-                    value={newCourse.duration}
-                    onChange={(e) => setNewCourse({...newCourse, duration: e.target.value})}
-                    placeholder="e.g., 4 years, 2 semesters"
-                  />
-                </Form.Group>
-              </Col>
-              <Col md={6}>
-                <Form.Group className="mb-3">
-                  <Form.Label>Requirements</Form.Label>
-                  <Form.Control
-                    type="text"
-                    value={newCourse.requirements}
-                    onChange={(e) => setNewCourse({...newCourse, requirements: e.target.value})}
-                    placeholder="Entry requirements"
+                    placeholder="Unique code (e.g., CS101)"
                   />
                 </Form.Group>
               </Col>
@@ -407,7 +411,79 @@ const AdminCourses = () => {
                 rows={3}
                 value={newCourse.description}
                 onChange={(e) => setNewCourse({...newCourse, description: e.target.value})}
-                placeholder="Enter course description"
+                placeholder="Course description"
+              />
+            </Form.Group>
+            <Row>
+              <Col md={6}>
+                <Form.Group className="mb-3">
+                  <Form.Label>Institution *</Form.Label>
+                  <Form.Select
+                    value={newCourse.institutionId}
+                    onChange={(e) => setNewCourse({...newCourse, institutionId: e.target.value})}
+                    required
+                  >
+                    <option value="">Select Institution</option>
+                    {institutions.map(institution => (
+                      <option key={institution.id} value={institution.id}>
+                        {institution.name}
+                      </option>
+                    ))}
+                  </Form.Select>
+                </Form.Group>
+              </Col>
+              <Col md={6}>
+                <Form.Group className="mb-3">
+                  <Form.Label>Faculty *</Form.Label>
+                  <Form.Select
+                    value={newCourse.facultyId}
+                    onChange={(e) => setNewCourse({...newCourse, facultyId: e.target.value})}
+                    required
+                  >
+                    <option value="">Select Faculty</option>
+                    {faculties.filter(fac => fac.institutionId === newCourse.institutionId).map(faculty => (
+                      <option key={faculty.id} value={faculty.id}>
+                        {faculty.name}
+                      </option>
+                    ))}
+                  </Form.Select>
+                </Form.Group>
+              </Col>
+            </Row>
+            <Row>
+              <Col md={6}>
+                <Form.Group className="mb-3">
+                  <Form.Label>Level</Form.Label>
+                  <Form.Select
+                    value={newCourse.level}
+                    onChange={(e) => setNewCourse({...newCourse, level: e.target.value})}
+                  >
+                    <option value="undergraduate">Undergraduate</option>
+                    <option value="postgraduate">Postgraduate</option>
+                    <option value="diploma">Diploma</option>
+                    <option value="certificate">Certificate</option>
+                  </Form.Select>
+                </Form.Group>
+              </Col>
+              <Col md={6}>
+                <Form.Group className="mb-3">
+                  <Form.Label>Credits</Form.Label>
+                  <Form.Control
+                    type="number"
+                    value={newCourse.credits}
+                    onChange={(e) => setNewCourse({...newCourse, credits: e.target.value})}
+                    placeholder="e.g., 3"
+                  />
+                </Form.Group>
+              </Col>
+            </Row>
+            <Form.Group className="mb-3">
+              <Form.Label>Duration</Form.Label>
+              <Form.Control
+                type="text"
+                value={newCourse.duration}
+                onChange={(e) => setNewCourse({...newCourse, duration: e.target.value})}
+                placeholder="e.g., 4 years"
               />
             </Form.Group>
           </Modal.Body>
@@ -417,6 +493,153 @@ const AdminCourses = () => {
             </Button>
             <Button variant="primary" type="submit" disabled={loading}>
               {loading ? 'Adding...' : 'Add Course'}
+            </Button>
+          </Modal.Footer>
+        </Form>
+      </Modal>
+
+      {/* Edit Course Modal */}
+      <Modal show={showEditModal} onHide={() => setShowEditModal(false)} size="lg">
+        <Modal.Header closeButton>
+          <Modal.Title>Edit Course: {editingCourse?.name}</Modal.Title>
+        </Modal.Header>
+        <Form onSubmit={(e) => {
+          e.preventDefault();
+          handleUpdateCourse(editingCourse.id, editCourse);
+          setShowEditModal(false);
+        }}>
+          <Modal.Body>
+            <Row>
+              <Col md={6}>
+                <Form.Group className="mb-3">
+                  <Form.Label>Course Name *</Form.Label>
+                  <Form.Control
+                    type="text"
+                    value={editCourse.name}
+                    onChange={(e) => setEditCourse({...editCourse, name: e.target.value})}
+                    required
+                    placeholder="Enter course name"
+                  />
+                </Form.Group>
+              </Col>
+              <Col md={6}>
+                <Form.Group className="mb-3">
+                  <Form.Label>Course Code *</Form.Label>
+                  <Form.Control
+                    type="text"
+                    value={editCourse.code}
+                    onChange={(e) => setEditCourse({...editCourse, code: e.target.value})}
+                    required
+                    placeholder="Unique code (e.g., CS101)"
+                  />
+                </Form.Group>
+              </Col>
+            </Row>
+            <Form.Group className="mb-3">
+              <Form.Label>Description</Form.Label>
+              <Form.Control
+                as="textarea"
+                rows={3}
+                value={editCourse.description}
+                onChange={(e) => setEditCourse({...editCourse, description: e.target.value})}
+                placeholder="Course description"
+              />
+            </Form.Group>
+            <Row>
+              <Col md={6}>
+                <Form.Group className="mb-3">
+                  <Form.Label>Institution *</Form.Label>
+                  <Form.Select
+                    value={editCourse.institutionId}
+                    onChange={(e) => setEditCourse({...editCourse, institutionId: e.target.value})}
+                    required
+                  >
+                    <option value="">Select Institution</option>
+                    {institutions.map(institution => (
+                      <option key={institution.id} value={institution.id}>
+                        {institution.name}
+                      </option>
+                    ))}
+                  </Form.Select>
+                </Form.Group>
+              </Col>
+              <Col md={6}>
+                <Form.Group className="mb-3">
+                  <Form.Label>Faculty *</Form.Label>
+                  <Form.Select
+                    value={editCourse.facultyId}
+                    onChange={(e) => setEditCourse({...editCourse, facultyId: e.target.value})}
+                    required
+                  >
+                    <option value="">Select Faculty</option>
+                    {faculties.filter(fac => fac.institutionId === editCourse.institutionId).map(faculty => (
+                      <option key={faculty.id} value={faculty.id}>
+                        {faculty.name}
+                      </option>
+                    ))}
+                  </Form.Select>
+                </Form.Group>
+              </Col>
+            </Row>
+            <Row>
+              <Col md={6}>
+                <Form.Group className="mb-3">
+                  <Form.Label>Level</Form.Label>
+                  <Form.Select
+                    value={editCourse.level}
+                    onChange={(e) => setEditCourse({...editCourse, level: e.target.value})}
+                  >
+                    <option value="undergraduate">Undergraduate</option>
+                    <option value="postgraduate">Postgraduate</option>
+                    <option value="diploma">Diploma</option>
+                    <option value="certificate">Certificate</option>
+                  </Form.Select>
+                </Form.Group>
+              </Col>
+              <Col md={6}>
+                <Form.Group className="mb-3">
+                  <Form.Label>Credits</Form.Label>
+                  <Form.Control
+                    type="number"
+                    value={editCourse.credits}
+                    onChange={(e) => setEditCourse({...editCourse, credits: e.target.value})}
+                    placeholder="e.g., 3"
+                  />
+                </Form.Group>
+              </Col>
+            </Row>
+            <Row>
+              <Col md={6}>
+                <Form.Group className="mb-3">
+                  <Form.Label>Duration</Form.Label>
+                  <Form.Control
+                    type="text"
+                    value={editCourse.duration}
+                    onChange={(e) => setEditCourse({...editCourse, duration: e.target.value})}
+                    placeholder="e.g., 4 years"
+                  />
+                </Form.Group>
+              </Col>
+              <Col md={6}>
+                <Form.Group className="mb-3">
+                  <Form.Label>Status</Form.Label>
+                  <Form.Select
+                    value={editCourse.status}
+                    onChange={(e) => setEditCourse({...editCourse, status: e.target.value})}
+                  >
+                    <option value="active">Active</option>
+                    <option value="inactive">Inactive</option>
+                  </Form.Select>
+                </Form.Group>
+              </Col>
+            </Row>
+          </Modal.Body>
+          <Modal.Footer>
+            <Button variant="secondary" onClick={() => setShowEditModal(false)}>
+              Cancel
+            </Button>
+            <Button variant="primary" type="submit" disabled={loading}>
+              {loading ? 'Updating...' : 'Update Course'}
             </Button>
           </Modal.Footer>
         </Form>

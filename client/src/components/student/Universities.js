@@ -1,7 +1,8 @@
 import React, { useState, useEffect } from 'react';
 import { collection, getDocs, query, where } from 'firebase/firestore';
 import { auth, db } from '../../firebase';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, Link } from 'react-router-dom';
+import { Button } from 'react-bootstrap';
 import './Universities.css';
 
 export default function Universities() {
@@ -62,7 +63,7 @@ export default function Universities() {
     try {
       console.log('Fetching universities...');
 
-      // Try to fetch from Firestore first
+      // Fetch institutions from Firestore
       const universitiesQuery = query(collection(db, 'institutions'), where('status', '==', 'active'));
       const universitiesSnapshot = await getDocs(universitiesQuery);
       const universitiesData = universitiesSnapshot.docs.map(doc => ({
@@ -70,7 +71,24 @@ export default function Universities() {
         ...doc.data()
       }));
 
+      // Fetch all active courses
+      const coursesQuery = query(collection(db, 'courses'), where('status', '==', 'active'));
+      const coursesSnapshot = await getDocs(coursesQuery);
+      const coursesData = coursesSnapshot.docs.map(doc => ({
+        id: doc.id,
+        ...doc.data()
+      }));
+
       if (universitiesData.length > 0) {
+        // Group courses by institutionId
+        const coursesByInstitution = coursesData.reduce((acc, course) => {
+          if (!acc[course.institutionId]) {
+            acc[course.institutionId] = [];
+          }
+          acc[course.institutionId].push(course.name);
+          return acc;
+        }, {});
+
         // Transform Firestore data to match component structure
         const transformedUniversities = universitiesData.map(uni => ({
           id: uni.id,
@@ -78,7 +96,7 @@ export default function Universities() {
           location: uni.location || 'Lesotho',
           logo: uni.logo || '🏛️',
           description: uni.description || 'A leading institution offering quality education.',
-          courses: uni.courses || ['Computer Science', 'Business Administration'],
+          courses: coursesByInstitution[uni.id] || ['Computer Science', 'Business Administration'],
           website: uni.website || 'www.example.edu.ls',
           phone: uni.phone || '+266 0000 0000',
           email: uni.email || 'info@example.edu.ls',
@@ -137,7 +155,10 @@ export default function Universities() {
         <div className="col-12">
           <div className="d-flex justify-content-between align-items-center">
             <div>
-              <h3 className="text-primary mb-1">Universities in Lesotho</h3>
+              <Button as={Link} to="/student-dashboard" variant="outline-secondary" className="me-3">
+                ← Back to Dashboard
+              </Button>
+              <h3 className="text-primary mb-1 d-inline">Universities in Lesotho</h3>
               <p className="text-muted mb-0">
                 Explore top universities and discover your perfect academic destination.
               </p>

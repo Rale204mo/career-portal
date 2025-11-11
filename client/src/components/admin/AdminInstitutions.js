@@ -16,7 +16,17 @@ const AdminInstitutions = () => {
   const [showModal, setShowModal] = useState(false);
   const [selectedInstitution, setSelectedInstitution] = useState(null);
   const [showAddModal, setShowAddModal] = useState(false);
+  const [showEditModal, setShowEditModal] = useState(false);
+  const [editingInstitution, setEditingInstitution] = useState(null);
   const [newInstitution, setNewInstitution] = useState({
+    name: '',
+    code: '',
+    type: 'university',
+    location: '',
+    contactEmail: '',
+    status: 'active'
+  });
+  const [editInstitution, setEditInstitution] = useState({
     name: '',
     code: '',
     type: 'university',
@@ -142,6 +152,16 @@ const AdminInstitutions = () => {
     }
   };
 
+  const handleManageFaculties = (institution) => {
+    // Navigate to faculty management for this institution
+    window.location.href = `/admin/faculties?institution=${institution.id}`;
+  };
+
+  const handleManageCourses = (institution) => {
+    // Navigate to course management for this institution
+    window.location.href = `/admin/courses?institution=${institution.id}`;
+  };
+
   const getInstitutionStats = (institutionId) => {
     const institutionApps = applications.filter(app => app.institutionId === institutionId);
     return {
@@ -250,13 +270,45 @@ const AdminInstitutions = () => {
                         <Badge bg="success">{stats.approved}</Badge>
                       </td>
                       <td>
-                        <div className="d-flex gap-1">
+                        <div className="d-flex gap-1 flex-wrap">
                           <Button
                             variant="outline-primary"
                             size="sm"
                             onClick={() => handleViewDetails(institution)}
                           >
                             View
+                          </Button>
+                          <Button
+                            variant="outline-info"
+                            size="sm"
+                            onClick={() => handleManageFaculties(institution)}
+                          >
+                            Faculties
+                          </Button>
+                          <Button
+                            variant="outline-success"
+                            size="sm"
+                            onClick={() => handleManageCourses(institution)}
+                          >
+                            Courses
+                          </Button>
+                          <Button
+                            variant="outline-secondary"
+                            size="sm"
+                            onClick={() => {
+                              setEditingInstitution(institution);
+                              setEditInstitution({
+                                name: institution.name,
+                                code: institution.code,
+                                type: institution.type,
+                                location: institution.location,
+                                contactEmail: institution.contactEmail,
+                                status: institution.status
+                              });
+                              setShowEditModal(true);
+                            }}
+                          >
+                            Edit
                           </Button>
                           <Button
                             variant="outline-warning"
@@ -434,6 +486,109 @@ const AdminInstitutions = () => {
             </Button>
             <Button variant="primary" type="submit" disabled={loading}>
               {loading ? 'Adding...' : 'Add Institution'}
+            </Button>
+          </Modal.Footer>
+        </Form>
+      </Modal>
+
+
+
+      {/* Edit Institution Modal */}
+      <Modal show={showEditModal} onHide={() => setShowEditModal(false)} size="lg">
+        <Modal.Header closeButton>
+          <Modal.Title>Edit Institution: {editingInstitution?.name}</Modal.Title>
+        </Modal.Header>
+        <Form onSubmit={(e) => {
+          e.preventDefault();
+          handleUpdateInstitution(editingInstitution.id, editInstitution);
+          setShowEditModal(false);
+        }}>
+          <Modal.Body>
+            <Row>
+              <Col md={6}>
+                <Form.Group className="mb-3">
+                  <Form.Label>Institution Name *</Form.Label>
+                  <Form.Control
+                    type="text"
+                    value={editInstitution.name}
+                    onChange={(e) => setEditInstitution({...editInstitution, name: e.target.value})}
+                    required
+                    placeholder="Enter institution name"
+                  />
+                </Form.Group>
+              </Col>
+              <Col md={6}>
+                <Form.Group className="mb-3">
+                  <Form.Label>Institution Code *</Form.Label>
+                  <Form.Control
+                    type="text"
+                    value={editInstitution.code}
+                    onChange={(e) => setEditInstitution({...editInstitution, code: e.target.value})}
+                    required
+                    placeholder="Unique code (e.g., LIMKOKWING)"
+                  />
+                </Form.Group>
+              </Col>
+            </Row>
+            <Row>
+              <Col md={6}>
+                <Form.Group className="mb-3">
+                  <Form.Label>Institution Type</Form.Label>
+                  <Form.Select
+                    value={editInstitution.type}
+                    onChange={(e) => setEditInstitution({...editInstitution, type: e.target.value})}
+                  >
+                    <option value="university">University</option>
+                    <option value="college">College</option>
+                    <option value="institute">Institute</option>
+                    <option value="polytechnic">Polytechnic</option>
+                  </Form.Select>
+                </Form.Group>
+              </Col>
+              <Col md={6}>
+                <Form.Group className="mb-3">
+                  <Form.Label>Location</Form.Label>
+                  <Form.Control
+                    type="text"
+                    value={editInstitution.location}
+                    onChange={(e) => setEditInstitution({...editInstitution, location: e.target.value})}
+                    placeholder="City, Country"
+                  />
+                </Form.Group>
+              </Col>
+            </Row>
+            <Row>
+              <Col md={6}>
+                <Form.Group className="mb-3">
+                  <Form.Label>Contact Email</Form.Label>
+                  <Form.Control
+                    type="email"
+                    value={editInstitution.contactEmail}
+                    onChange={(e) => setEditInstitution({...editInstitution, contactEmail: e.target.value})}
+                    placeholder="admin@institution.edu"
+                  />
+                </Form.Group>
+              </Col>
+              <Col md={6}>
+                <Form.Group className="mb-3">
+                  <Form.Label>Status</Form.Label>
+                  <Form.Select
+                    value={editInstitution.status}
+                    onChange={(e) => setEditInstitution({...editInstitution, status: e.target.value})}
+                  >
+                    <option value="active">Active</option>
+                    <option value="inactive">Inactive</option>
+                  </Form.Select>
+                </Form.Group>
+              </Col>
+            </Row>
+          </Modal.Body>
+          <Modal.Footer>
+            <Button variant="secondary" onClick={() => setShowEditModal(false)}>
+              Cancel
+            </Button>
+            <Button variant="primary" type="submit" disabled={loading}>
+              {loading ? 'Updating...' : 'Update Institution'}
             </Button>
           </Modal.Footer>
         </Form>

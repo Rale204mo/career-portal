@@ -2,8 +2,9 @@
 import React, { useState, useEffect } from 'react';
 import { Container, Card, Form, Button, Alert, Row, Col } from 'react-bootstrap';
 import { Link } from 'react-router-dom';
-import { auth, db } from '../../firebase';
+import { auth, db, storage } from '../../firebase';
 import { doc, getDoc, setDoc } from 'firebase/firestore';
+import { ref, uploadBytes, getDownloadURL, deleteObject } from 'firebase/storage';
 
 const StudentProfile = () => {
   const [profile, setProfile] = useState({
@@ -11,6 +12,7 @@ const StudentProfile = () => {
     dateOfBirth: '',
     phone: '',
     address: '',
+    profilePicture: '',
     qualifications: {
       finalGrade: '',
       subjects: [],
@@ -20,6 +22,7 @@ const StudentProfile = () => {
   });
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
+  const [uploading, setUploading] = useState(false);
   const [error, setError] = useState('');
   const [success, setSuccess] = useState('');
 
@@ -34,7 +37,16 @@ const StudentProfile = () => {
 
       const profileDoc = await getDoc(doc(db, 'users', user.uid));
       if (profileDoc.exists()) {
-        setProfile(profileDoc.data());
+        const data = profileDoc.data();
+        setProfile({
+          ...data,
+          qualifications: data.qualifications || {
+            finalGrade: '',
+            subjects: [],
+            portfolio: false,
+            otherQualifications: ''
+          }
+        });
       } else {
         // Initialize with user data
         setProfile(prev => ({
@@ -87,6 +99,64 @@ const StudentProfile = () => {
     }));
   };
 
+  const handleImageUpload = async (e) => {
+    const file = e.target.files[0];
+    if (!file) return;
+
+    // Validate file type
+    if (!file.type.startsWith('image/')) {
+      setError('Please select a valid image file');
+      return;
+    }
+
+    // Validate file size (max 5MB)
+    if (file.size > 5 * 1024 * 1024) {
+      setError('Image size must be less than 5MB');
+      return;
+    }
+
+    try {
+      setUploading(true);
+      setError('');
+
+      const user = auth.currentUser;
+      if (!user) {
+        setError('Please log in to upload image');
+        return;
+      }
+
+      // Delete existing profile picture if it exists
+      if (profile.profilePicture) {
+        try {
+          const oldImageRef = ref(storage, profile.profilePicture);
+          await deleteObject(oldImageRef);
+        } catch (err) {
+          console.log('No existing image to delete');
+        }
+      }
+
+      // Upload new image
+      const imageRef = ref(storage, `profile-pictures/${user.uid}/${file.name}`);
+      await uploadBytes(imageRef, file);
+
+      // Get download URL
+      const downloadURL = await getDownloadURL(imageRef);
+
+      // Update profile with new image URL
+      setProfile(prev => ({
+        ...prev,
+        profilePicture: downloadURL
+      }));
+
+      setSuccess('Profile picture uploaded successfully!');
+    } catch (err) {
+      console.error('Upload error:', err);
+      setError('Failed to upload image: ' + err.message);
+    } finally {
+      setUploading(false);
+    }
+  };
+
   if (loading) {
     return (
       <Container className="mt-4">
@@ -123,6 +193,39 @@ const StudentProfile = () => {
                 <h5 className="mb-0">Personal Information</h5>
               </Card.Header>
               <Card.Body>
+                {/* Profile Picture Section */}
+                <div className="text-center mb-4">
+                  <div className="mb-3">
+                    {profile.profilePicture ? (
+                      <img
+                        src={profile.profilePicture}
+                        alt="Profile"
+                        className="rounded-circle"
+                        style={{ width: '120px', height: '120px', objectFit: 'cover' }}
+                      />
+                    ) : (
+                      <div
+                        className="rounded-circle bg-light d-flex align-items-center justify-content-center mx-auto"
+                        style={{ width: '120px', height: '120px' }}
+                      >
+                        <i className="bi bi-person-fill text-muted" style={{ fontSize: '3rem' }}></i>
+                      </div>
+                    )}
+                  </div>
+                  <Form.Group className="mb-3">
+                    <Form.Label>Profile Picture</Form.Label>
+                    <Form.Control
+                      type="file"
+                      accept="image/*"
+                      onChange={handleImageUpload}
+                      disabled={uploading}
+                    />
+                    <Form.Text className="text-muted">
+                      {uploading ? 'Uploading...' : 'Upload a profile picture (max 5MB)'}
+                    </Form.Text>
+                  </Form.Group>
+                </div>
+
                 <Form.Group className="mb-3">
                   <Form.Label>Full Name *</Form.Label>
                   <Form.Control

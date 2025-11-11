@@ -24,15 +24,9 @@ const AdminDashboard = () => {
   const [pendingCompanies, setPendingCompanies] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
-  const [showAddInstitution, setShowAddInstitution] = useState(false);
   const [showPublishAdmissions, setShowPublishAdmissions] = useState(false);
-  const [newInstitution, setNewInstitution] = useState({
-    name: '',
-    code: '',
-    type: 'university',
-    location: '',
-    contactEmail: ''
-  });
+  const [showAddInstitution, setShowAddInstitution] = useState(false);
+  const [newInstitution, setNewInstitution] = useState({ name: '', code: '', type: 'university', location: '', contactEmail: '' });
 
   useEffect(() => {
     fetchDashboardData();
@@ -116,7 +110,7 @@ const AdminDashboard = () => {
     } catch (err) {
       console.error('Dashboard error:', err);
       setError('Failed to load dashboard data: ' + err.message);
-      
+
       // Set default stats on error
       setStats({
         totalUsers: 0,
@@ -160,7 +154,7 @@ const AdminDashboard = () => {
   const formatDate = (dateValue) => {
     try {
       if (!dateValue) return 'N/A';
-      
+
       let date;
       if (dateValue.toDate) {
         // Firebase timestamp
@@ -172,7 +166,7 @@ const AdminDashboard = () => {
       } else {
         date = new Date();
       }
-      
+
       return date.toLocaleDateString();
     } catch (error) {
       console.error('Date formatting error:', error);
@@ -203,20 +197,7 @@ const AdminDashboard = () => {
     return String(value);
   };
 
-  const handleAddInstitution = async (e) => {
-    e.preventDefault();
-    try {
-      const result = await realApi.addInstitution(newInstitution);
-      if (result.success) {
-        alert(`Institution "${newInstitution.name}" added successfully!`);
-        setShowAddInstitution(false);
-        setNewInstitution({ name: '', code: '', type: 'university', location: '', contactEmail: '' });
-        fetchDashboardData();
-      }
-    } catch (err) {
-      setError('Failed to add institution: ' + err.message);
-    }
-  };
+
 
   const handlePublishAdmissions = async (institutionId) => {
     try {
@@ -243,6 +224,21 @@ const AdminDashboard = () => {
       }
     } catch (err) {
       setError(`Failed to ${action} company: ` + err.message);
+    }
+  };
+
+  const handleAddInstitution = async (e) => {
+    e.preventDefault();
+    try {
+      const result = await realApi.createInstitution(newInstitution);
+      if (result.success) {
+        alert('Institution added successfully!');
+        setShowAddInstitution(false);
+        setNewInstitution({ name: '', code: '', type: 'university', location: '', contactEmail: '' });
+        fetchDashboardData();
+      }
+    } catch (err) {
+      setError('Failed to add institution: ' + err.message);
     }
   };
 
@@ -361,20 +357,17 @@ const AdminDashboard = () => {
                         Add and manage higher learning institutions, faculties, and courses
                       </Card.Text>
                       <div className="d-grid gap-2">
-                        <Button
-                          variant="primary"
-                          onClick={() => setShowAddInstitution(true)}
-                        >
-                          Add New Institution
+                        <Button variant="primary" onClick={() => setShowAddInstitution(true)}>
+                          Add Institution
                         </Button>
-                        <Button as={Link} to="/admin/institutions" variant="outline-primary">
-                          Manage Institutions
-                        </Button>
-                        <Button as={Link} to="/admin/faculties" variant="outline-secondary">
+                        <Button as={Link} to="/admin/faculties" variant="outline-info">
                           Manage Faculties
                         </Button>
-                        <Button as={Link} to="/admin/courses" variant="outline-info">
+                        <Button as={Link} to="/admin/courses" variant="outline-success">
                           Manage Courses
+                        </Button>
+                        <Button as={Link} to="/admin/institutions" variant="outline-secondary">
+                          View All Institutions
                         </Button>
                       </div>
                     </Card.Body>
@@ -391,14 +384,14 @@ const AdminDashboard = () => {
                         Publish admissions and monitor student applications
                       </Card.Text>
                       <div className="d-grid gap-2">
-                        <Button 
-                          as={Link} 
-                          to="/admin/admissions" 
+                        <Button
+                          as={Link}
+                          to="/admin/admissions"
                           variant="success"
                         >
                           Manage Admissions
                         </Button>
-                        <Button 
+                        <Button
                           variant="outline-success"
                           onClick={() => setShowPublishAdmissions(true)}
                         >
@@ -425,9 +418,9 @@ const AdminDashboard = () => {
                         <Button as={Link} to="/admin/companies" variant="warning">
                           Manage Companies
                         </Button>
-                        <Button 
-                          as={Link} 
-                          to="/admin/companies?filter=pending" 
+                        <Button
+                          as={Link}
+                          to="/admin/companies?filter=pending"
                           variant="outline-warning"
                         >
                           Pending Approvals ({safeDisplay(stats.pendingCompanies)})
@@ -494,10 +487,10 @@ const AdminDashboard = () => {
                         <td>{getStatusBadge(app.status)}</td>
                         <td>{formatDate(app.applicationDate)}</td>
                         <td>
-                          <Button 
-                            as={Link} 
-                            to="/admin/admissions" 
-                            variant="outline-primary" 
+                          <Button
+                            as={Link}
+                            to="/admin/admissions"
+                            variant="outline-primary"
                             size="sm"
                           >
                             Review
@@ -535,15 +528,15 @@ const AdminDashboard = () => {
                         <td>{getStatusBadge(company.status)}</td>
                         <td>
                           <div className="d-flex gap-1">
-                            <Button 
-                              variant="success" 
+                            <Button
+                              variant="success"
                               size="sm"
                               onClick={() => handleCompanyAction(company.id, 'approved')}
                             >
                               Approve
                             </Button>
-                            <Button 
-                              variant="danger" 
+                            <Button
+                              variant="danger"
                               size="sm"
                               onClick={() => handleCompanyAction(company.id, 'rejected')}
                             >
@@ -569,19 +562,19 @@ const AdminDashboard = () => {
             </Card.Header>
             <Card.Body>
               <div className="mb-3">
-                <strong>Backend:</strong> 
+                <strong>Backend:</strong>
                 <Badge bg="success" className="ms-2">Connected</Badge>
               </div>
               <div className="mb-3">
-                <strong>Database:</strong> 
+                <strong>Database:</strong>
                 <Badge bg="success" className="ms-2">Online</Badge>
               </div>
               <div className="mb-3">
-                <strong>Applications:</strong> 
+                <strong>Applications:</strong>
                 <span className="ms-2">{safeDisplay(stats.totalApplications)} records</span>
               </div>
               <div>
-                <strong>Last Updated:</strong> 
+                <strong>Last Updated:</strong>
                 <span className="ms-2">{new Date().toLocaleTimeString()}</span>
               </div>
             </Card.Body>
@@ -618,86 +611,7 @@ const AdminDashboard = () => {
         </Col>
       </Row>
 
-      {/* Add Institution Modal */}
-      <Modal show={showAddInstitution} onHide={() => setShowAddInstitution(false)} size="lg">
-        <Modal.Header closeButton>
-          <Modal.Title>Add New Institution</Modal.Title>
-        </Modal.Header>
-        <Form onSubmit={handleAddInstitution}>
-          <Modal.Body>
-            <Row>
-              <Col md={6}>
-                <Form.Group className="mb-3">
-                  <Form.Label>Institution Name *</Form.Label>
-                  <Form.Control
-                    type="text"
-                    value={newInstitution.name}
-                    onChange={(e) => setNewInstitution({...newInstitution, name: e.target.value})}
-                    required
-                    placeholder="Enter institution name"
-                  />
-                </Form.Group>
-              </Col>
-              <Col md={6}>
-                <Form.Group className="mb-3">
-                  <Form.Label>Institution Code *</Form.Label>
-                  <Form.Control
-                    type="text"
-                    value={newInstitution.code}
-                    onChange={(e) => setNewInstitution({...newInstitution, code: e.target.value})}
-                    required
-                    placeholder="Unique code (e.g., LIMKOKWING)"
-                  />
-                </Form.Group>
-              </Col>
-            </Row>
-            <Row>
-              <Col md={6}>
-                <Form.Group className="mb-3">
-                  <Form.Label>Institution Type</Form.Label>
-                  <Form.Select
-                    value={newInstitution.type}
-                    onChange={(e) => setNewInstitution({...newInstitution, type: e.target.value})}
-                  >
-                    <option value="university">University</option>
-                    <option value="college">College</option>
-                    <option value="institute">Institute</option>
-                    <option value="polytechnic">Polytechnic</option>
-                  </Form.Select>
-                </Form.Group>
-              </Col>
-              <Col md={6}>
-                <Form.Group className="mb-3">
-                  <Form.Label>Location</Form.Label>
-                  <Form.Control
-                    type="text"
-                    value={newInstitution.location}
-                    onChange={(e) => setNewInstitution({...newInstitution, location: e.target.value})}
-                    placeholder="City, Country"
-                  />
-                </Form.Group>
-              </Col>
-            </Row>
-            <Form.Group className="mb-3">
-              <Form.Label>Contact Email</Form.Label>
-              <Form.Control
-                type="email"
-                value={newInstitution.contactEmail}
-                onChange={(e) => setNewInstitution({...newInstitution, contactEmail: e.target.value})}
-                placeholder="admin@institution.edu"
-              />
-            </Form.Group>
-          </Modal.Body>
-          <Modal.Footer>
-            <Button variant="secondary" onClick={() => setShowAddInstitution(false)}>
-              Cancel
-            </Button>
-            <Button variant="primary" type="submit">
-              Add Institution
-            </Button>
-          </Modal.Footer>
-        </Form>
-      </Modal>
+
 
       {/* Publish Admissions Modal */}
       <Modal show={showPublishAdmissions} onHide={() => setShowPublishAdmissions(false)}>
@@ -726,6 +640,72 @@ const AdminDashboard = () => {
             Publish Admissions
           </Button>
         </Modal.Footer>
+      </Modal>
+
+      {/* Add Institution Modal */}
+      <Modal show={showAddInstitution} onHide={() => setShowAddInstitution(false)}>
+        <Modal.Header closeButton>
+          <Modal.Title>Add New Institution</Modal.Title>
+        </Modal.Header>
+        <Modal.Body>
+          <Form onSubmit={handleAddInstitution}>
+            <Form.Group className="mb-3">
+              <Form.Label>Institution Name</Form.Label>
+              <Form.Control
+                type="text"
+                value={newInstitution.name}
+                onChange={(e) => setNewInstitution({ ...newInstitution, name: e.target.value })}
+                required
+              />
+            </Form.Group>
+            <Form.Group className="mb-3">
+              <Form.Label>Institution Code</Form.Label>
+              <Form.Control
+                type="text"
+                value={newInstitution.code}
+                onChange={(e) => setNewInstitution({ ...newInstitution, code: e.target.value })}
+                required
+              />
+            </Form.Group>
+            <Form.Group className="mb-3">
+              <Form.Label>Type</Form.Label>
+              <Form.Select
+                value={newInstitution.type}
+                onChange={(e) => setNewInstitution({ ...newInstitution, type: e.target.value })}
+              >
+                <option value="university">University</option>
+                <option value="college">College</option>
+                <option value="institute">Institute</option>
+              </Form.Select>
+            </Form.Group>
+            <Form.Group className="mb-3">
+              <Form.Label>Location</Form.Label>
+              <Form.Control
+                type="text"
+                value={newInstitution.location}
+                onChange={(e) => setNewInstitution({ ...newInstitution, location: e.target.value })}
+                required
+              />
+            </Form.Group>
+            <Form.Group className="mb-3">
+              <Form.Label>Contact Email</Form.Label>
+              <Form.Control
+                type="email"
+                value={newInstitution.contactEmail}
+                onChange={(e) => setNewInstitution({ ...newInstitution, contactEmail: e.target.value })}
+                required
+              />
+            </Form.Group>
+            <div className="d-flex justify-content-end gap-2">
+              <Button variant="secondary" onClick={() => setShowAddInstitution(false)}>
+                Cancel
+              </Button>
+              <Button variant="primary" type="submit">
+                Add Institution
+              </Button>
+            </div>
+          </Form>
+        </Modal.Body>
       </Modal>
     </Container>
   );

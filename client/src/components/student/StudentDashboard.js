@@ -152,7 +152,7 @@ export default function StudentDashboard() {
     try {
       console.log('Fetching universities for dashboard...');
 
-      // Try to fetch from Firestore first
+      // Fetch institutions from Firestore
       const universitiesQuery = query(collection(db, 'institutions'), where('status', '==', 'active'));
       const universitiesSnapshot = await getDocs(universitiesQuery);
       const universitiesData = universitiesSnapshot.docs.map(doc => ({
@@ -160,14 +160,31 @@ export default function StudentDashboard() {
         ...doc.data()
       }));
 
+      // Fetch all active courses
+      const coursesQuery = query(collection(db, 'courses'), where('status', '==', 'active'));
+      const coursesSnapshot = await getDocs(coursesQuery);
+      const coursesData = coursesSnapshot.docs.map(doc => ({
+        id: doc.id,
+        ...doc.data()
+      }));
+
       if (universitiesData.length > 0) {
+        // Group courses by institutionId
+        const coursesByInstitution = coursesData.reduce((acc, course) => {
+          if (!acc[course.institutionId]) {
+            acc[course.institutionId] = [];
+          }
+          acc[course.institutionId].push(course.name);
+          return acc;
+        }, {});
+
         // Transform Firestore data to match component structure
         const transformedUniversities = universitiesData.map(uni => ({
           id: uni.id,
           name: uni.name || 'Unknown University',
           location: uni.location || 'Lesotho',
           logo: uni.logo || '🏛️',
-          courses: uni.courses || ['Computer Science', 'Business Administration']
+          courses: coursesByInstitution[uni.id] || ['Computer Science', 'Business Administration']
         }));
         setUniversities(transformedUniversities);
         console.log('Loaded universities from Firestore for dashboard:', transformedUniversities.length);

@@ -1,7 +1,6 @@
-// src/components/admin/AdminFaculties.js
 import React, { useState, useEffect } from 'react';
 import { Container, Card, Table, Button, Badge, Alert, Modal, Form, Row, Col } from 'react-bootstrap';
-import { Link } from 'react-router-dom';
+import { Link, useSearchParams } from 'react-router-dom';
 import { collection, getDocs, query, where, addDoc, updateDoc, deleteDoc, doc } from 'firebase/firestore';
 import { auth, db } from '../../firebase';
 import { realApi } from '../../api/config';
@@ -9,6 +8,9 @@ import { useAuth } from '../contexts/AuthContext';
 
 const AdminFaculties = () => {
   const { logout } = useAuth();
+  const [searchParams] = useSearchParams();
+  const institutionId = searchParams.get('institution');
+
   const [faculties, setFaculties] = useState([]);
   const [institutions, setInstitutions] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -16,23 +18,33 @@ const AdminFaculties = () => {
   const [showModal, setShowModal] = useState(false);
   const [selectedFaculty, setSelectedFaculty] = useState(null);
   const [showAddModal, setShowAddModal] = useState(false);
+  const [showEditModal, setShowEditModal] = useState(false);
+  const [editingFaculty, setEditingFaculty] = useState(null);
   const [newFaculty, setNewFaculty] = useState({
     name: '',
     code: '',
     description: '',
-    institutionId: ''
+    institutionId: institutionId || '',
+    status: 'active'
+  });
+  const [editFaculty, setEditFaculty] = useState({
+    name: '',
+    code: '',
+    description: '',
+    institutionId: institutionId || '',
+    status: 'active'
   });
 
   useEffect(() => {
     fetchData();
-  }, []);
+  }, [institutionId]);
 
   const fetchData = async () => {
     try {
       setLoading(true);
       setError('');
 
-      // Fetch institutions first
+      // Fetch institutions
       const institutionsQuery = query(collection(db, 'institutions'));
       const institutionsSnapshot = await getDocs(institutionsQuery);
       const institutionsData = institutionsSnapshot.docs.map(doc => ({
@@ -41,23 +53,27 @@ const AdminFaculties = () => {
       }));
       setInstitutions(institutionsData);
 
-      // Fetch faculties from Firestore
-      const facultiesQuery = query(collection(db, 'faculties'));
+      // Fetch faculties
+      let facultiesQuery;
+      if (institutionId) {
+        facultiesQuery = query(collection(db, 'faculties'), where('institutionId', '==', institutionId));
+      } else {
+        facultiesQuery = query(collection(db, 'faculties'));
+      }
+
       const facultiesSnapshot = await getDocs(facultiesQuery);
       const facultiesData = facultiesSnapshot.docs.map(doc => ({
         id: doc.id,
         ...doc.data()
       }));
 
-      // Enrich faculties with institution names
-      const enrichedFaculties = facultiesData.map(faculty => ({
+      // Add institution names to faculties
+      const facultiesWithInstitution = facultiesData.map(faculty => ({
         ...faculty,
-        institutionName: institutionsData.find(inst => inst.id === faculty.institutionId)?.name || 'Unknown Institution'
+        institutionName: institutionsData.find(inst => inst.id === faculty.institutionId)?.name || 'Unknown'
       }));
 
-      setFaculties(enrichedFaculties);
-      console.log('Loaded faculties from Firestore:', enrichedFaculties.length);
-
+      setFaculties(facultiesWithInstitution);
     } catch (err) {
       console.error('Error fetching data:', err);
       setError('Failed to load data: ' + err.message);
@@ -71,7 +87,6 @@ const AdminFaculties = () => {
     try {
       setLoading(true);
 
-      // Add to Firestore
       const docRef = await addDoc(collection(db, 'faculties'), {
         ...newFaculty,
         createdAt: new Date(),
@@ -80,16 +95,14 @@ const AdminFaculties = () => {
 
       console.log('Faculty added with ID:', docRef.id);
 
-      // Reset form and close modal
       setNewFaculty({
         name: '',
         code: '',
         description: '',
-        institutionId: ''
+        institutionId: institutionId || '',
+        status: 'active'
       });
       setShowAddModal(false);
-
-      // Refresh data
       fetchData();
 
       alert('Faculty added successfully!');
@@ -157,7 +170,7 @@ const AdminFaculties = () => {
           <Button as={Link} to="/admin" variant="outline-secondary">
             ← Back to Dashboard
           </Button>
-          <h1>Faculty Management</h1>
+          <h1>Faculty Management {institutionId && `- ${institutions.find(i => i.id === institutionId)?.name || 'Institution'}`}</h1>
         </div>
         <div className="d-flex gap-2">
           <Button variant="outline-danger" onClick={() => logout()}>
@@ -193,7 +206,7 @@ const AdminFaculties = () => {
                   <th>Faculty Name</th>
                   <th>Code</th>
                   <th>Institution</th>
-                  <th>Description</th>
+                  <th>Status</th>
                   <th>Actions</th>
                 </tr>
               </thead>
@@ -203,16 +216,15 @@ const AdminFaculties = () => {
                     <td>
                       <div>
                         <strong>{faculty.name}</strong>
+                        <div className="text-muted small">{faculty.description}</div>
                       </div>
                     </td>
-                    <td>
-                      <Badge bg="info">{faculty.code || 'N/A'}</Badge>
-                    </td>
+                    <td>{faculty.code}</td>
                     <td>{faculty.institutionName}</td>
                     <td>
-                      <div className="text-truncate" style={{ maxWidth: '200px' }}>
-                        {faculty.description || 'No description'}
-                      </div>
+                      <Badge bg={faculty.status === 'active' ? 'success' : 'secondary'}>
+                        {faculty.status || 'active'}
+                      </Badge>
                     </td>
                     <td>
                       <div className="d-flex gap-1">
@@ -224,16 +236,28 @@ const AdminFaculties = () => {
                           View
                         </Button>
                         <Button
-                          variant="outline-warning"
+                          variant="outline-secondary"
                           size="sm"
                           onClick={() => {
-                            const newName = prompt('Enter new faculty name:', faculty.name);
-                            if (newName && newName !== faculty.name) {
-                              handleUpdateFaculty(faculty.id, { name: newName });
-                            }
+                            setEditingFaculty(faculty);
+                            setEditFaculty({
+                              name: faculty.name,
+                              code: faculty.code,
+                              description: faculty.description,
+                              institutionId: faculty.institutionId,
+                              status: faculty.status
+                            });
+                            setShowEditModal(true);
                           }}
                         >
                           Edit
+                        </Button>
+                        <Button
+                          variant="outline-warning"
+                          size="sm"
+                          onClick={() => handleUpdateFaculty(faculty.id, { status: faculty.status === 'active' ? 'inactive' : 'active' })}
+                        >
+                          {faculty.status === 'active' ? 'Deactivate' : 'Activate'}
                         </Button>
                         <Button
                           variant="outline-danger"
@@ -273,13 +297,12 @@ const AdminFaculties = () => {
                   <strong>Institution:</strong> {selectedFaculty.institutionName}
                 </Col>
                 <Col md={6}>
-                  <strong>Created:</strong> {selectedFaculty.createdAt?.toDate?.()?.toLocaleDateString() || 'N/A'}
+                  <strong>Status:</strong> <Badge bg={selectedFaculty.status === 'active' ? 'success' : 'secondary'}>{selectedFaculty.status}</Badge>
                 </Col>
               </Row>
               <Row className="mb-3">
                 <Col md={12}>
-                  <strong>Description:</strong>
-                  <p className="mt-2">{selectedFaculty.description || 'No description available'}</p>
+                  <strong>Description:</strong> {selectedFaculty.description || 'No description'}
                 </Col>
               </Row>
             </div>
@@ -318,13 +341,23 @@ const AdminFaculties = () => {
                   <Form.Control
                     type="text"
                     value={newFaculty.code}
-                    onChange={(e) => setNewFaculty({...newFaculty, code: e.target.value.toUpperCase()})}
+                    onChange={(e) => setNewFaculty({...newFaculty, code: e.target.value})}
                     required
-                    placeholder="Short code (e.g., SCI)"
+                    placeholder="Unique code (e.g., CS)"
                   />
                 </Form.Group>
               </Col>
             </Row>
+            <Form.Group className="mb-3">
+              <Form.Label>Description</Form.Label>
+              <Form.Control
+                as="textarea"
+                rows={3}
+                value={newFaculty.description}
+                onChange={(e) => setNewFaculty({...newFaculty, description: e.target.value})}
+                placeholder="Faculty description"
+              />
+            </Form.Group>
             <Form.Group className="mb-3">
               <Form.Label>Institution *</Form.Label>
               <Form.Select
@@ -333,22 +366,12 @@ const AdminFaculties = () => {
                 required
               >
                 <option value="">Select Institution</option>
-                {institutions.map((institution) => (
+                {institutions.map(institution => (
                   <option key={institution.id} value={institution.id}>
                     {institution.name}
                   </option>
                 ))}
               </Form.Select>
-            </Form.Group>
-            <Form.Group className="mb-3">
-              <Form.Label>Description</Form.Label>
-              <Form.Control
-                as="textarea"
-                rows={3}
-                value={newFaculty.description}
-                onChange={(e) => setNewFaculty({...newFaculty, description: e.target.value})}
-                placeholder="Enter faculty description"
-              />
             </Form.Group>
           </Modal.Body>
           <Modal.Footer>
@@ -357,6 +380,90 @@ const AdminFaculties = () => {
             </Button>
             <Button variant="primary" type="submit" disabled={loading}>
               {loading ? 'Adding...' : 'Add Faculty'}
+            </Button>
+          </Modal.Footer>
+        </Form>
+      </Modal>
+
+      {/* Edit Faculty Modal */}
+      <Modal show={showEditModal} onHide={() => setShowEditModal(false)} size="lg">
+        <Modal.Header closeButton>
+          <Modal.Title>Edit Faculty: {editingFaculty?.name}</Modal.Title>
+        </Modal.Header>
+        <Form onSubmit={(e) => {
+          e.preventDefault();
+          handleUpdateFaculty(editingFaculty.id, editFaculty);
+          setShowEditModal(false);
+        }}>
+          <Modal.Body>
+            <Row>
+              <Col md={6}>
+                <Form.Group className="mb-3">
+                  <Form.Label>Faculty Name *</Form.Label>
+                  <Form.Control
+                    type="text"
+                    value={editFaculty.name}
+                    onChange={(e) => setEditFaculty({...editFaculty, name: e.target.value})}
+                    required
+                    placeholder="Enter faculty name"
+                  />
+                </Form.Group>
+              </Col>
+              <Col md={6}>
+                <Form.Group className="mb-3">
+                  <Form.Label>Faculty Code *</Form.Label>
+                  <Form.Control
+                    type="text"
+                    value={editFaculty.code}
+                    onChange={(e) => setEditFaculty({...editFaculty, code: e.target.value})}
+                    required
+                    placeholder="Unique code (e.g., CS)"
+                  />
+                </Form.Group>
+              </Col>
+            </Row>
+            <Form.Group className="mb-3">
+              <Form.Label>Description</Form.Label>
+              <Form.Control
+                as="textarea"
+                rows={3}
+                value={editFaculty.description}
+                onChange={(e) => setEditFaculty({...editFaculty, description: e.target.value})}
+                placeholder="Faculty description"
+              />
+            </Form.Group>
+            <Form.Group className="mb-3">
+              <Form.Label>Institution *</Form.Label>
+              <Form.Select
+                value={editFaculty.institutionId}
+                onChange={(e) => setEditFaculty({...editFaculty, institutionId: e.target.value})}
+                required
+              >
+                <option value="">Select Institution</option>
+                {institutions.map(institution => (
+                  <option key={institution.id} value={institution.id}>
+                    {institution.name}
+                  </option>
+                ))}
+              </Form.Select>
+            </Form.Group>
+            <Form.Group className="mb-3">
+              <Form.Label>Status</Form.Label>
+              <Form.Select
+                value={editFaculty.status}
+                onChange={(e) => setEditFaculty({...editFaculty, status: e.target.value})}
+              >
+                <option value="active">Active</option>
+                <option value="inactive">Inactive</option>
+              </Form.Select>
+            </Form.Group>
+          </Modal.Body>
+          <Modal.Footer>
+            <Button variant="secondary" onClick={() => setShowEditModal(false)}>
+              Cancel
+            </Button>
+            <Button variant="primary" type="submit" disabled={loading}>
+              {loading ? 'Updating...' : 'Update Faculty'}
             </Button>
           </Modal.Footer>
         </Form>
