@@ -1,7 +1,7 @@
 // src/api/config.js
 import { auth } from '../firebase';
 
-const API_BASE_URL = 'http://localhost:5000';
+const API_BASE_URL= 'https://career-portal-gtig.onrender.com';
 
 // Helper function to get Firebase ID token
 const getAuthToken = async () => {
